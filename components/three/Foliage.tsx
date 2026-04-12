@@ -53,7 +53,8 @@ export const Foliage = ({ leafCount }: FoliageProps) => {
     const dummy = new THREE.Object3D();
     const mats: THREE.Matrix4[] = [];
     const rands: number[] = [];
-    const perCluster = Math.max(1, Math.floor(leafCount / clusters.length));
+    // 葉を小さくした分、量を2倍に増やす
+    const perCluster = Math.max(1, Math.floor((leafCount * 2) / clusters.length));
 
     clusters.map((cl) => {
       for (let i = 0; i < perCluster; i++) {
@@ -66,7 +67,8 @@ export const Foliage = ({ leafCount }: FoliageProps) => {
           cl.z + Math.cos(phi) * dist
         );
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI * 2, Math.random() * Math.PI * 0.5);
-        const sz = 25.0 + Math.random() * 40.0;
+        // Premiumと同じ小さいサイズ感
+        const sz = 8.0 + Math.random() * 16.0;
         dummy.scale.set(sz, sz, sz);
         dummy.updateMatrix();
         mats.push(dummy.matrix.clone());
@@ -119,18 +121,17 @@ export const Foliage = ({ leafCount }: FoliageProps) => {
         fragmentShader={`
           varying float vRandom;varying vec3 vWorldNormal;varying vec3 vWorldPos;
           void main(){
-            vec3 baseColor;
-            if(vRandom>0.9){float f=fract(vRandom*10.0);baseColor=mix(vec3(0.95,0.92,0.90),vec3(0.95,0.78,0.82),f);}
-            else{float v=fract(vRandom*7.0);baseColor=mix(vec3(0.04,0.12,0.02),mix(vec3(0.08,0.24,0.04),vec3(0.16,0.36,0.07),v),v);}
-            vec3 N=normalize(vWorldNormal);vec3 L=normalize(vec3(0.15,0.96,0.24));vec3 V=normalize(cameraPosition-vWorldPos);
-            float diffuse=max(dot(N,L),0.0)*0.55;
-            float sss=pow(max(dot(-N,L),0.0),2.0)*0.45;vec3 sssColor=baseColor*1.6+vec3(0.05,0.08,0.02);
-            float upF=dot(N,vec3(0,1,0))*0.5+0.5;
-            vec3 ambient=mix(vec3(0.02,0.04,0.01),vec3(0.06,0.10,0.05),upF);
-            float rim=pow(1.0-max(dot(N,V),0.0),3.0)*0.12;
-            vec3 color=baseColor*(ambient+diffuse)+sssColor*sss+vec3(0.15,0.25,0.08)*rim;
-            if(vRandom>0.9){color=baseColor*(ambient+diffuse*0.8+0.25);}
-            gl_FragColor=vec4(color,0.96);
+            vec3 N=normalize(vWorldNormal);
+            vec3 L=normalize(vec3(0.15,0.96,0.24));
+            float diffuse=max(dot(N,L),0.0)*0.6;
+            float sss=pow(max(dot(-N,L),0.0),2.0)*0.4;
+            vec3 baseColor=mix(vec3(0.06,0.18,0.04),vec3(0.12,0.32,0.06),diffuse);
+            // ランダムで色味にバリエーション
+            baseColor=mix(baseColor,vec3(0.08,0.22,0.03),fract(vRandom*7.0)*0.3);
+            vec3 sssColor=baseColor*1.5+vec3(0.03,0.06,0.01);
+            vec3 ambient=vec3(0.03,0.05,0.02);
+            vec3 color=baseColor*(ambient+diffuse)+sssColor*sss;
+            gl_FragColor=vec4(color,0.92);
           }`}
       />
     </instancedMesh>

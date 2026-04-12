@@ -28,15 +28,12 @@ const TRUNK_HEIGHT = TRUNK_TOP_Y - TRUNK_BASE_Y;
 // ===== 主枝12本（不規則にまばらに分岐する大樹構造） =====
 // カメラ範囲は Y: -200〜3000 程度。枝は3000付近から上に広がる
 export const BRANCH_DEFS: BranchDef[] = [
-  // --- 太い主枝3本（幹中間から分岐、第二の幹のように太い） ---
+  // --- 太い主枝2本（幹中間から分岐、第二の幹のように太い） ---
   { yStart: 3200, angle: 0.3,  length: 8000,  hGain: 2200, radius: 400, twist: 500,  subs: 3 },
-  { yStart: 3600, angle: 2.5,  length: 7500,  hGain: 2000, radius: 380, twist: -450, subs: 3 },
   { yStart: 3400, angle: 4.4,  length: 7800,  hGain: 2100, radius: 390, twist: 420,  subs: 3 },
-  // --- 中太枝4本（上部寄りから、不規則な間隔で） ---
+  // --- 中太枝2本（上部寄りから、不規則な間隔で） ---
   { yStart: 4200, angle: 1.1,  length: 6500,  hGain: 1500, radius: 280, twist: -380, subs: 3 },
-  { yStart: 4600, angle: 3.6,  length: 6000,  hGain: 1300, radius: 250, twist: 330,  subs: 2 },
   { yStart: 4000, angle: 5.3,  length: 6800,  hGain: 1600, radius: 270, twist: -400, subs: 3 },
-  { yStart: 5000, angle: 0.9,  length: 5500,  hGain: 1100, radius: 220, twist: 300,  subs: 2 },
   // --- 細い上枝5本（さらに上から） ---
   { yStart: 5500, angle: 1.9,  length: 5000,  hGain: 900,  radius: 180, twist: -260, subs: 2 },
   { yStart: 6000, angle: 3.1,  length: 4500,  hGain: 750,  radius: 160, twist: 240,  subs: 2 },
@@ -163,6 +160,27 @@ export const computeFoliageTips = (): THREE.Vector3[] => {
     });
   });
 
+  // ===== 幹の頂点に密な葉クラスター（断面を完全に隠す） =====
+  const crownY = 8400;
+  // 中心に大きなクラスター
+  tips.push(new THREE.Vector3(0, crownY, 0));
+  tips.push(new THREE.Vector3(0, crownY + 200, 0));
+  tips.push(new THREE.Vector3(0, crownY + 400, 0));
+  // 周囲にリング状に配置
+  for (let ring = 0; ring < 3; ring++) {
+    const ringR = 200 + ring * 250;
+    const ringCount = 8 + ring * 4;
+    const ringY = crownY - ring * 100;
+    for (let i = 0; i < ringCount; i++) {
+      const a = (i / ringCount) * Math.PI * 2 + ring * 0.3;
+      tips.push(new THREE.Vector3(
+        Math.cos(a) * ringR,
+        ringY + (i % 3) * 40,
+        Math.sin(a) * ringR
+      ));
+    }
+  }
+
   return tips;
 };
 
@@ -269,6 +287,9 @@ export const TreeTrunk = ({ onClick, onPointerOver, onPointerOut }: TreePartProp
       new THREE.Vector2(1400, 3200),  new THREE.Vector2(1300, 3800), new THREE.Vector2(1160, 4500),
       new THREE.Vector2(1000, 5200),  new THREE.Vector2(860, 6000),  new THREE.Vector2(740, 6800),
       new THREE.Vector2(660, 7500),   new THREE.Vector2(600, 8000),
+      // 頂点を閉じる（断面が見えないように先端を絞る）
+      new THREE.Vector2(400, 8300),   new THREE.Vector2(200, 8500),
+      new THREE.Vector2(60, 8650),    new THREE.Vector2(0.01, 8700),
     ];
     return new THREE.LatheGeometry(profile, 96, 0, Math.PI * 2);
   }, []);

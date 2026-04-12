@@ -1,38 +1,74 @@
 'use client';
 
-import { Suspense, useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { Suspense, useState, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
 import { Bloom, EffectComposer, Vignette, DepthOfField, Noise, Sepia } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
-import { DustParticles } from './DustParticles';
 import { LogoMesh } from './LogoMesh';
-import { TreeTrunk, TreeBranches, BRANCH_DEFS, buildBranchCurve } from './TreeParts';
+import { TreeTrunk, TreeBranches, BRANCH_DEFS, buildBranchCurve, getTrunkRadius } from './TreeParts';
 import { Foliage } from './Foliage';
 import { CameraRig, getActiveLineName } from './CameraRig';
 import { LuxuryJewelry, PremiumJewelry, StandardJewelry, EntryJewelry } from './Jewelry';
-import { Fireflies, FloatingSpores } from './EnvironmentEffects';
+import { PremiumTwigLeaves } from './PremiumTwigLeaves';
 import { useMousePosition } from '@/hooks/useMousePosition';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
 import { useResponsive } from '@/hooks/useResponsive';
-import { DUST_CONFIG } from '@/lib/constants';
 
-// ===== ジュエリー位置を枝元付近に配置し、枝上面に浮かせる =====
-// 枝ごとのt値: 幹が太い高所の枝は少し先に配置して幹との被りを防ぐ
-const JEWELRY_T_PER_BRANCH = [0.6, 0.6, 0.6, 0.6]; // Entry, Standard, Premium, Luxury
+// ===== ジュエリー位置計算 =====
+// Entry: 幹の根元付近（Y=200）
+// Standard: 低い枝の上（BRANCH_DEFS[0]）
+// Premium: 幹から生えた小枝の先端上（Y=4500付近）
+// Luxury: 高い枝上 + 花の演出（BRANCH_DEFS[6]）
+
+// --- Premium小枝パラメータ（PremiumTwigLeavesと共有） ---
+export const PREMIUM_TWIG = {
+  angle: 2.5,        // 幹上の角度
+  y: 4500,           // 幹上のY座標
+  length: 900,       // 小枝の長さ（幹表面からの距離）
+  rise: 350,         // 小枝の上昇量
+  floatOffset: 120,  // ジュエリーの浮遊高さ
+} as const;
+
 const computeJewelryPositions = () => {
   const positions: Record<string, [number, number, number]> = {};
-  const names = ['entry', 'standard', 'premium', 'luxury'];
-  names.map((name, i) => {
-    const t = JEWELRY_T_PER_BRANCH[i];
-    const d = BRANCH_DEFS[i];
-    const curve = buildBranchCurve(d);
-    const pt = new THREE.Vector3();
-    curve.getPoint(t, pt);
-    const branchRadiusAtT = d.radius * (1.0 - t * (1.0 - 0.18));
-    positions[name] = [pt.x, pt.y + branchRadiusAtT + 10, pt.z];
-  });
+
+  // Entry Line: 幹の根元付近に浮かぶ
+  const entryAngle = 0.3;
+  const entryY = 200;
+  const entryTrunkR = getTrunkRadius(entryY);
+  positions.entry = [
+    Math.cos(entryAngle) * (entryTrunkR + 300),
+    entryY,
+    Math.sin(entryAngle) * (entryTrunkR + 300),
+  ];
+
+  // Standard: 低い枝上
+  const stdDef = BRANCH_DEFS[0];
+  const stdCurve = buildBranchCurve(stdDef);
+  const stdPt = new THREE.Vector3();
+  stdCurve.getPoint(0.6, stdPt);
+  const stdR = stdDef.radius * (1.0 - 0.6 * (1.0 - 0.18));
+  positions.standard = [stdPt.x, stdPt.y + stdR + 10, stdPt.z];
+
+  // Premium: 幹から生えた小枝の先端上に浮かぶ
+  const pt = PREMIUM_TWIG;
+  const trunkR = getTrunkRadius(pt.y);
+  const tipX = Math.cos(pt.angle) * (trunkR + pt.length);
+  const tipZ = Math.sin(pt.angle) * (trunkR + pt.length);
+  const tipY = pt.y + pt.rise;
+  positions.premium = [tipX, tipY + pt.floatOffset, tipZ];
+
+  // Luxury: 木の頂上付近の空中に浮かぶ
+  const luxAngle = 0.9;
+  const luxY = 15000;
+  positions.luxury = [
+    Math.cos(luxAngle) * 800,
+    luxY,
+    Math.sin(luxAngle) * 800,
+  ];
+
   return positions;
 };
 
@@ -219,94 +255,13 @@ const GodRays = () => {
   );
 };
 
-// ===== 微細な砂塵（カメラ周辺に常に漂う極小パーティクル） =====
-const FineDust = ({ count }: { count: number }) => {
-  const pointsRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
-
-  const { positions, velocities } = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const vel = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 2000;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 2000;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 2000;
-      vel[i * 3] = (Math.random() - 0.5) * 0.3;
-      vel[i * 3 + 1] = (Math.random() - 0.5) * 0.15 + 0.05;
-      vel[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
-    }
-    return { positions: pos, velocities: vel };
-  }, [count]);
-
-  useFrame(({ camera, clock }) => {
-    if (!pointsRef.current || !materialRef.current) return;
-    // カメラに追従
-    pointsRef.current.position.copy(camera.position);
-    materialRef.current.uniforms.uTime.value = clock.getElapsedTime();
-
-    // パーティクルをゆっくり動かす
-    const posAttr = pointsRef.current.geometry.getAttribute('position');
-    const arr = posAttr.array as Float32Array;
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] += velocities[i * 3];
-      arr[i * 3 + 1] += velocities[i * 3 + 1];
-      arr[i * 3 + 2] += velocities[i * 3 + 2];
-      // 範囲外に出たら反対側にワープ
-      if (Math.abs(arr[i * 3]) > 1000) arr[i * 3] *= -0.99;
-      if (Math.abs(arr[i * 3 + 1]) > 1000) arr[i * 3 + 1] *= -0.99;
-      if (Math.abs(arr[i * 3 + 2]) > 1000) arr[i * 3 + 2] *= -0.99;
-    }
-    posAttr.needsUpdate = true;
-  });
-
-  return (
-    <points ref={pointsRef} frustumCulled={false}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <shaderMaterial
-        ref={materialRef}
-        transparent
-        depthWrite={false}
-        uniforms={{ uTime: { value: 0 } }}
-        vertexShader={`
-          uniform float uTime;
-          varying float vAlpha;
-          void main() {
-            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-            float dist = length(mvPos.xyz);
-            // 近い粒子は見えやすく、遠いと薄くなる
-            vAlpha = smoothstep(800.0, 50.0, dist) * (0.15 + 0.1 * sin(uTime * 0.5 + position.x * 0.01));
-            gl_PointSize = max(0.5, 2.5 - dist * 0.002);
-            gl_Position = projectionMatrix * mvPos;
-          }
-        `}
-        fragmentShader={`
-          varying float vAlpha;
-          void main() {
-            float d = length(gl_PointCoord - 0.5) * 2.0;
-            if (d > 1.0) discard;
-            float alpha = (1.0 - d * d) * vAlpha;
-            gl_FragColor = vec4(0.85, 0.78, 0.65, alpha);
-          }
-        `}
-      />
-    </points>
-  );
-};
 
 // ===== メインシーン =====
 const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }) => {
   const mousePosition = useMousePosition();
   const scrollProgress = useScrollProgress();
   const { isMobile } = useResponsive();
-  const [dustVisible, setDustVisible] = useState(true);
 
-  const handleClearProgress = useCallback((progress: number) => {
-    if (progress >= 1) setDustVisible(false);
-  }, []);
-
-  const particleCount = isMobile ? DUST_CONFIG.sp.count : DUST_CONFIG.pc.count;
   const grassCount = isMobile ? 6000 : 22000;
   const leafCount = isMobile ? 500000 : 2000000;
 
@@ -353,29 +308,19 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
       <Foliage leafCount={leafCount} />
 
       <LuxuryJewelry position={JEWELRY_POSITIONS.luxury} onClick={() => onNavigate('/lines/luxury')} />
+      <PremiumTwigLeaves />
       <PremiumJewelry position={JEWELRY_POSITIONS.premium} onClick={() => onNavigate('/lines/premium')} />
       <StandardJewelry position={JEWELRY_POSITIONS.standard} onClick={() => onNavigate('/lines/standard')} />
       <EntryJewelry position={JEWELRY_POSITIONS.entry} onClick={() => onNavigate('/lines/entry')} />
 
       <LogoMesh scrollProgress={scrollProgress} />
 
-      <FineDust count={isMobile ? 3000 : 8000} />
-      <Fireflies />
-      <FloatingSpores />
       <GodRays />
-
-      {dustVisible && (
-        <DustParticles
-          mousePosition={mousePosition}
-          onClearProgress={handleClearProgress}
-          particleCount={particleCount}
-        />
-      )}
 
       <EffectComposer multisampling={4}>
         <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />
         <Bloom luminanceThreshold={0.4} intensity={1.2} mipmapBlur />
-        <Noise opacity={0.12} blendFunction={BlendFunction.SOFT_LIGHT} />
+        <Noise opacity={0.35} blendFunction={BlendFunction.OVERLAY} />
         <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
         <Vignette eskil={false} offset={0.05} darkness={0.85} />
       </EffectComposer>
@@ -450,7 +395,7 @@ export const TreeScene = ({ onNavigate }: TreeSceneProps) => {
     <>
       <LineNameOverlay scrollProgress={scrollProgress} />
       <Canvas
-        camera={{ fov: 65, near: 0.1, far: 50000, position: [0, 6500, 600] }}
+        camera={{ fov: 65, near: 0.1, far: 50000, position: [0, -300, 600] }}
         gl={{
           antialias: true,
           toneMappingExposure: 0.7,

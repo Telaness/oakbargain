@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { LineConfig } from '@/types/line';
 import { Navigation } from '@/components/ui/Navigation';
@@ -9,15 +10,34 @@ interface LinePageContentProps {
 }
 
 export const LinePageContent = ({ config }: LinePageContentProps) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(timer);
+  }, []);
+
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: config.colors.bg }}
+      style={{
+        backgroundColor: config.colors.bg,
+        filter: mounted ? 'blur(0px)' : 'blur(20px)',
+        opacity: mounted ? 1 : 0,
+        transition: 'filter 1.2s ease-out, opacity 1s ease-out',
+      }}
     >
       <Navigation />
 
       {/* ヘッダーセクション */}
-      <header className="flex flex-col items-center justify-center px-6 pt-32 pb-16">
+      <header
+        className="flex flex-col items-center justify-center px-6 pt-32 pb-16"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(30px)',
+          transition: 'opacity 0.8s ease-out 0.3s, transform 0.8s ease-out 0.3s',
+        }}
+      >
         <p
           className="text-sm tracking-[0.3em] uppercase opacity-60"
           style={{ color: config.colors.accent }}
@@ -45,7 +65,14 @@ export const LinePageContent = ({ config }: LinePageContentProps) => {
       </header>
 
       {/* メインビジュアル */}
-      <section className="mx-auto max-w-4xl px-6 py-12">
+      <section
+        className="mx-auto max-w-4xl px-6 py-12"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(30px)',
+          transition: 'opacity 0.8s ease-out 0.6s, transform 0.8s ease-out 0.6s',
+        }}
+      >
         <div
           className="painting-filter aspect-[16/9] w-full rounded-lg"
           style={{
@@ -55,7 +82,14 @@ export const LinePageContent = ({ config }: LinePageContentProps) => {
       </section>
 
       {/* コンテンツ */}
-      <section className="mx-auto max-w-3xl px-6 py-16">
+      <section
+        className="mx-auto max-w-3xl px-6 py-16"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(30px)',
+          transition: 'opacity 0.8s ease-out 0.9s, transform 0.8s ease-out 0.9s',
+        }}
+      >
         <p
           className="text-base leading-loose"
           style={{ color: config.colors.text }}
@@ -110,7 +144,14 @@ export const LinePageContent = ({ config }: LinePageContentProps) => {
       </section>
 
       {/* 戻るボタン */}
-      <section className="flex justify-center pb-20">
+      <section
+        className="flex justify-center pb-20"
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? 'translateY(0)' : 'translateY(30px)',
+          transition: 'opacity 0.8s ease-out 1.2s, transform 0.8s ease-out 1.2s',
+        }}
+      >
         <Link
           href="/"
           className="inline-block border px-10 py-4 text-sm tracking-[0.2em] transition-all hover:bg-white/10"

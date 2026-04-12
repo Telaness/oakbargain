@@ -58,10 +58,25 @@ const FloatingGLB = ({
   );
 };
 
-// ===== LUXURY: K18ゴールドリング + ルビー（プリミティブ、2.5倍スケール） =====
+// ===== LUXURY: luxury.glb（高所配置のため自発光+強照明） =====
 export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const innerRef = useRef<THREE.Group>(null);
+  const { scene } = useGLTF('/3d/juwely/luxury.glb');
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    // マテリアルにエミッシブを追加して暗い環境でも光る
+    c.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.material) {
+        const mat = (obj.material as THREE.MeshStandardMaterial).clone();
+        mat.emissive = new THREE.Color('#D4AF37');
+        mat.emissiveIntensity = 0.6;
+        mat.envMapIntensity = 3.0;
+        obj.material = mat;
+      }
+    });
+    return c;
+  }, [scene]);
 
   useEffect(() => {
     if (groupRef.current) groupRef.current.traverse((obj) => { obj.frustumCulled = false; });
@@ -80,23 +95,10 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
       onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { document.body.style.cursor = 'default'; }}
     >
-      <group ref={innerRef} scale={25}>
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[3.5, 0.6, 20, 48]} />
-          <meshStandardMaterial color="#D4AF37" metalness={0.95} roughness={0.04} envMapIntensity={2.0} />
-        </mesh>
-        <mesh position={[0, 2.8, 0]}>
-          <octahedronGeometry args={[1.5]} />
-          <meshStandardMaterial color="#CC1133" emissive="#FF2244" emissiveIntensity={0.8} metalness={0.15} roughness={0.02} envMapIntensity={3.0} />
-        </mesh>
-        {[0, 1, 2, 3].map((i) => (
-          <mesh key={i} position={[Math.cos(i * Math.PI / 2) * 1.1, 1.6, Math.sin(i * Math.PI / 2) * 1.1]} scale={[0.15, 1.2, 0.15]}>
-            <cylinderGeometry args={[1, 0.6, 1, 6]} />
-            <meshStandardMaterial color="#D4AF37" metalness={0.95} roughness={0.04} />
-          </mesh>
-        ))}
+      <group ref={innerRef}>
+        <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#FFD700" intensity={20} distance={1500} decay={2} />
+      <pointLight color="#FFD700" intensity={15} distance={2000} decay={2} />
     </group>
   );
 };
@@ -147,6 +149,7 @@ export const EntryJewelry = ({ position, onClick }: JewelryProps) => (
 );
 
 // GLBのプリロード
+useGLTF.preload('/3d/juwely/luxury.glb');
 useGLTF.preload('/3d/juwely/standard1.glb');
 useGLTF.preload('/3d/juwely/entry1.glb');
 useGLTF.preload('/3d/juwely/entry2.glb');

@@ -37,7 +37,7 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
             時を旅した輝きに、次の物語を
           </p>
           <div className="mt-8 flex items-center justify-end gap-2 text-[#6B5B45] text-xs tracking-[0.2em]">
-            <span>SCROLL TO DESCEND</span>
+            <span>SCROLL TO ASCEND</span>
             <svg
               width="14"
               height="14"
@@ -47,27 +47,19 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
               strokeWidth="1.5"
               className="animate-bounce"
             >
-              <path d="M12 5v14M19 12l-7 7-7-7" />
+              <path d="M12 19V5M5 12l7-7 7 7" />
             </svg>
           </div>
         </div>
       )}
 
-      {/* ===== ゾーンカード ===== */}
-      {activeZone && (
-        <ZoneCard
-          zone={activeZone}
-          scrollProgress={scrollProgress}
-          onNavigate={onNavigate}
-        />
-      )}
 
-      {/* ===== プログレスバー（左サイド・上から下へ） ===== */}
+      {/* ===== プログレスバー（左サイド・下から上へ） ===== */}
       <div className="absolute left-5 md:left-8 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0">
         <div className="relative h-52 w-px bg-[#1A1208]">
-          {/* バーは上から下に伸びる */}
+          {/* バーは下から上に伸びる */}
           <div
-            className="absolute top-0 left-0 w-full bg-gradient-to-b from-[#D4AF37] to-[#B8964E] transition-all duration-300 ease-out"
+            className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-[#C4956A] to-[#D4AF37] transition-all duration-300 ease-out"
             style={{ height: `${Math.round(scrollProgress * 100)}%` }}
           />
           {ZONE_CONFIGS.map((z) => {
@@ -77,7 +69,7 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
                 key={z.id}
                 className="absolute left-1/2 -translate-x-1/2 transition-all duration-300"
                 style={{
-                  top: `${z.scrollStart * 100}%`,
+                  bottom: `${z.scrollStart * 100}%`,
                 }}
               >
                 <div
@@ -94,7 +86,7 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
         </div>
       </div>
 
-      {/* ===== ゾーンラベル（左サイド） ===== */}
+      {/* ===== ゾーンラベル（左サイド・下から上へ） ===== */}
       <div className="hidden md:block absolute left-14 top-1/2 -translate-y-1/2 h-52">
         {ZONE_CONFIGS.map((z) => {
           const isInZone = scrollProgress >= z.scrollStart && scrollProgress <= z.scrollEnd;
@@ -104,7 +96,7 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
               key={z.id}
               className="absolute text-[10px] tracking-[0.2em] transition-all duration-300 whitespace-nowrap"
               style={{
-                top: `${z.scrollStart * 100}%`,
+                bottom: `${z.scrollStart * 100}%`,
                 color: isInZone ? config.colors.accent : '#2C1A0E',
                 transform: isInZone ? 'translateX(8px)' : 'translateX(0)',
                 opacity: isInZone ? 1 : 0.3,
@@ -117,9 +109,33 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
       </div>
 
       {/* ===== 下部のスクロールヒント ===== */}
-      {scrollProgress > 0.03 && scrollProgress < 0.92 && !activeZone && (
+      {scrollProgress > 0.03 && scrollProgress < 0.88 && !activeZone && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.3em] text-[#4A3520] opacity-50">
           SCROLL
+        </div>
+      )}
+
+      {/* ===== 終端: 真上の黒い天井に OAK BARGAIN ===== */}
+      {scrollProgress > 0.85 && (
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          style={{
+            opacity: Math.min(1, Math.max(0, (scrollProgress - 0.88) / 0.10)),
+          }}
+        >
+          <p className="text-[10px] tracking-[0.4em] text-[#6B5B45] uppercase mb-4">
+            Vintage Jewelry Brand
+          </p>
+          <h2 className="text-5xl md:text-7xl font-serif tracking-[0.35em] text-[#B8964E]">
+            OAK BARGAIN
+          </h2>
+          <div
+            className="mt-4 h-px bg-gradient-to-r from-transparent via-[#B8964E] to-transparent"
+            style={{ width: '120px' }}
+          />
+          <p className="mt-5 text-sm tracking-[0.2em] text-[#8B7355]">
+            時を旅した輝きに、次の物語を
+          </p>
         </div>
       )}
     </div>
