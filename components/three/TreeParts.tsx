@@ -18,6 +18,7 @@ export interface BranchDef {
   radius: number;
   twist: number;
   subs: number;
+  startDepth?: number;
 }
 
 // ===== 幹: 巨大な大樹（カメラから頂上が見えないスケール） =====
@@ -28,16 +29,13 @@ const TRUNK_HEIGHT = TRUNK_TOP_Y - TRUNK_BASE_Y;
 // ===== 主枝12本（不規則にまばらに分岐する大樹構造） =====
 // カメラ範囲は Y: -200〜3000 程度。枝は3000付近から上に広がる
 export const BRANCH_DEFS: BranchDef[] = [
-  // --- 太い主枝2本（幹中間から分岐、第二の幹のように太い） ---
   { yStart: 3200, angle: 0.3,  length: 8000,  hGain: 2200, radius: 400, twist: 500,  subs: 3 },
   { yStart: 3400, angle: 4.4,  length: 7800,  hGain: 2100, radius: 390, twist: 420,  subs: 3 },
-  // --- 中太枝2本（上部寄りから、不規則な間隔で） ---
   { yStart: 4200, angle: 1.1,  length: 6500,  hGain: 1500, radius: 280, twist: -380, subs: 3 },
   { yStart: 4000, angle: 5.3,  length: 6800,  hGain: 1600, radius: 270, twist: -400, subs: 3 },
-  // --- 細い上枝5本（さらに上から） ---
   { yStart: 5500, angle: 1.9,  length: 5000,  hGain: 900,  radius: 180, twist: -260, subs: 2 },
   { yStart: 6000, angle: 3.1,  length: 4500,  hGain: 750,  radius: 160, twist: 240,  subs: 2 },
-  { yStart: 5800, angle: 4.8,  length: 4800,  hGain: 850,  radius: 170, twist: -280, subs: 2 },
+  { yStart: 5800, angle: 4.8,  length: 4800,  hGain: 850,  radius: 170, twist: -280, subs: 2, startDepth: 0.5 },
   { yStart: 6500, angle: 5.8,  length: 4000,  hGain: 600,  radius: 140, twist: 200,  subs: 2 },
   { yStart: 7000, angle: 0.5,  length: 3500,  hGain: 500,  radius: 120, twist: -180, subs: 2 },
 ];
@@ -55,10 +53,11 @@ export const buildBranchCurve = (d: BranchDef): THREE.CatmullRomCurve3 => {
   const tR = getTrunkRadius(d.yStart);
   const peakH = d.hGain;
   const tipDrop = peakH * 0.35;
+  const depth = d.startDepth ?? 0.85;
   // 起点は幹表面（枝が幹から自然に生えている見た目）
   return new THREE.CatmullRomCurve3([
     // 起点: 幹の表面から
-    new THREE.Vector3(c * tR * 0.85, d.yStart, s * tR * 0.85),
+    new THREE.Vector3(c * tR * depth, d.yStart, s * tR * depth),
     // 幹表面を抜けて斜め上に（太い枝の根元部分）
     new THREE.Vector3(
       c * (tR + d.length * 0.06) + d.twist * 0.04,

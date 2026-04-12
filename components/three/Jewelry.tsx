@@ -19,6 +19,7 @@ const FloatingGLB = ({
   lightIntensity = 15,
   rotationSpeed = 0.3,
   scale = 8,
+  initialRotation,
 }: JewelryProps & {
   modelPath: string;
   lightColor: string;
@@ -27,6 +28,7 @@ const FloatingGLB = ({
   bobSpeed?: number;
   bobAmount?: number;
   scale?: number;
+  initialRotation?: [number, number, number];
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const innerRef = useRef<THREE.Group>(null);
@@ -51,14 +53,14 @@ const FloatingGLB = ({
       onPointerOut={() => { document.body.style.cursor = 'default'; }}
     >
       <group ref={innerRef}>
-        <primitive object={cloned} scale={scale} />
+        <primitive object={cloned} scale={scale} rotation={initialRotation} />
       </group>
       <pointLight color={lightColor} intensity={lightIntensity} distance={1500} decay={2} />
     </group>
   );
 };
 
-// ===== LUXURY: luxury.glb（高所配置のため自発光+強照明） =====
+// ===== LUXURY: silver.glb（高所配置のため自発光+強照明） =====
 export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const innerRef = useRef<THREE.Group>(null);
@@ -103,27 +105,59 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
   );
 };
 
-// ===== PREMIUM: standard1.glb =====
-export const PremiumJewelry = ({ position, onClick }: JewelryProps) => (
-  <FloatingGLB
-    position={position}
-    onClick={onClick}
-    modelPath="/3d/juwely/standard1.glb"
-    lightColor="#88CCAA"
-    lightIntensity={18}
-    rotationSpeed={0.3}
-    bobSpeed={0.7}
-    bobAmount={15}
-    scale={75}
-  />
-);
+// ===== PREMIUM: premium.glb =====
+export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const spinRef = useRef<THREE.Group>(null);
+  const { scene } = useGLTF('/3d/juwely/premium.glb');
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    // モデルの中心を原点に合わせる（公転防止）
+    c.position.set(0, 0, 0);
+    c.rotation.set(0, 0, 0);
+    c.scale.set(1, 1, 1);
+    c.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(c);
+    const center = box.getCenter(new THREE.Vector3());
+    c.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.translate(-center.x, -center.y, -center.z);
+      }
+    });
+    return c;
+  }, [scene]);
 
-// ===== STANDARD: entry2.glb =====
+  useEffect(() => {
+    if (groupRef.current) groupRef.current.traverse((obj) => { obj.frustumCulled = false; });
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!spinRef.current) return;
+    spinRef.current.rotation.y = clock.getElapsedTime() * 0.1;
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      position={position}
+      onClick={onClick}
+      onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { document.body.style.cursor = 'default'; }}
+    >
+      <group ref={spinRef}>
+        <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
+      </group>
+      <pointLight color="#88CCAA" intensity={18} distance={1500} decay={2} />
+    </group>
+  );
+};
+
+// ===== STANDARD: standard.glb =====
 export const StandardJewelry = ({ position, onClick }: JewelryProps) => (
   <FloatingGLB
     position={position}
     onClick={onClick}
-    modelPath="/3d/juwely/entry2.glb"
+    modelPath="/3d/juwely/standard.glb"
     lightColor="#DDBB88"
     lightIntensity={15}
     rotationSpeed={0.35}
@@ -133,12 +167,12 @@ export const StandardJewelry = ({ position, onClick }: JewelryProps) => (
   />
 );
 
-// ===== ENTRY: entry1.glb =====
+// ===== ENTRY: entry.glb =====
 export const EntryJewelry = ({ position, onClick }: JewelryProps) => (
   <FloatingGLB
     position={position}
     onClick={onClick}
-    modelPath="/3d/juwely/entry1.glb"
+    modelPath="/3d/juwely/entry.glb"
     lightColor="#DDCCBB"
     lightIntensity={12}
     rotationSpeed={0.25}
@@ -150,6 +184,6 @@ export const EntryJewelry = ({ position, onClick }: JewelryProps) => (
 
 // GLBのプリロード
 useGLTF.preload('/3d/juwely/luxury.glb');
-useGLTF.preload('/3d/juwely/standard1.glb');
-useGLTF.preload('/3d/juwely/entry1.glb');
-useGLTF.preload('/3d/juwely/entry2.glb');
+useGLTF.preload('/3d/juwely/premium.glb');
+useGLTF.preload('/3d/juwely/standard.glb');
+useGLTF.preload('/3d/juwely/entry.glb');
