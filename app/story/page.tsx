@@ -64,7 +64,7 @@ export default function StoryPage() {
             <p className="mt-6 text-base leading-loose text-[#F0EDE6]">
               素材が持つ価値、時を経たからこそ宿る空気、
               <br />
-              そしてその瞬間にしか生まれない"出会い"の特別さ。
+              そしてその瞬間にしか生まれない&ldquo;出会い&rdquo;の特別さ。
             </p>
           </div>
 
