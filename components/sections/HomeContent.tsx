@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useWebGLSupport } from '@/hooks/useWebGLSupport';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
@@ -8,7 +8,6 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { FallbackPage } from '@/components/ui/FallbackPage';
 import { Navigation } from '@/components/ui/Navigation';
 import { ImmersiveOverlay } from '@/components/ui/ImmersiveOverlay';
-import { DustOverlay } from '@/components/ui/DustOverlay';
 import { LineModal } from '@/components/ui/LineModal';
 import type { LineType } from '@/types/line';
 
@@ -24,11 +23,6 @@ export const HomeContent = () => {
   const isWebGLSupported = useWebGLSupport();
   const scrollProgress = useScrollProgress();
   const [modalLine, setModalLine] = useState<LineType | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
 
   // パスからLineTypeを抽出してモーダルを開く
   const handleNavigate = useCallback((path: string) => {
