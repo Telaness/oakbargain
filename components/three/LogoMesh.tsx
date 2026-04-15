@@ -168,15 +168,12 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     if (endBlend > 0) {
       _lookObj.position.copy(currentPos.current);
       _lookObj.lookAt(camera.position);
-      _lookObj.rotation.x = Math.PI;
-      _lookObj.rotation.y = Math.PI;
-      _lookObj.updateMatrix();
+      _lookObj.rotateY(Math.PI);
+      _lookObj.rotateX(Math.PI);
       groupRef.current.quaternion.slerp(_lookObj.quaternion, 0.05);
     } else {
-      _targetQuat.setFromEuler(groupRef.current.rotation).slerp(
-        _targetQuat.setFromAxisAngle(_up.set(0, 1, 0), spinAngle.current), 0.05
-      );
-      groupRef.current.quaternion.copy(_targetQuat);
+      _targetQuat.setFromAxisAngle(_up.set(0, 1, 0), spinAngle.current);
+      groupRef.current.quaternion.slerp(_targetQuat, 0.05);
     }
 
     const bob = Math.sin(clock.getElapsedTime() * 0.5) * 3;
