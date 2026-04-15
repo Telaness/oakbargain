@@ -214,7 +214,7 @@ interface LeafState {
   modelIdx: number;
 }
 
-const LEAF_COUNT = 400;
+const LEAF_COUNT = 250;
 
 // 各ウェーブで飛ばす割合: 1回目25%, 2回目25%, 3回目30%, 4回目で残り全部
 const WAVE_RATIOS = [0.25, 0.25, 0.3, 1.0];
@@ -252,7 +252,7 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
         ),
         vel: new THREE.Vector3(),
         rotVel: new THREE.Vector3(),
-        scale: 0.15 + Math.random() * 0.2,
+        scale: 0.2 + Math.random() * 0.25,
         resting: true,
         gone: false,
         modelIdx: 1,
@@ -400,67 +400,8 @@ const FrameScene = ({ lineId, showDetail, wave, onAllCleared, isMobile }: {
 // ===== 段階 =====
 type Phase = 'idle' | 'sandstorm' | 'reveal' | 'detail' | 'closing';
 
-// ===== 砂嵐2Dオーバーレイ =====
-const SandstormOverlay = ({ phase }: { phase: Phase }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const rafRef = useRef(0);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const el = ref.current;
-
-    const textures: string[] = [];
-    for (let t = 0; t < 4; t++) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
-
-      const imgData = ctx.createImageData(512, 512);
-      const d = imgData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        if (Math.random() > 0.4) {
-          d[i + 3] = 0;
-          continue;
-        }
-        const v = 90 + Math.floor(Math.random() * 70);
-        d[i] = v + 25;
-        d[i + 1] = v + 8;
-        d[i + 2] = v - 12;
-        d[i + 3] = 160 + Math.floor(Math.random() * 95);
-      }
-      ctx.putImageData(imgData, 0, 0);
-      textures.push(canvas.toDataURL());
-    }
-
-    el.style.backgroundSize = '512px 512px';
-
-    let frame = 0;
-    const animate = () => {
-      const idx = frame % textures.length;
-      el.style.backgroundImage = `url(${textures[idx]})`;
-      el.style.backgroundPosition = `${Math.floor(Math.random() * 512)}px ${Math.floor(Math.random() * 512)}px`;
-      frame++;
-      rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className="fixed inset-0 z-[56]"
-      style={{
-        pointerEvents: 'none',
-        opacity: phase === 'closing' ? 0 : phase === 'reveal' || phase === 'detail' ? 0.5 : 1,
-        transition: phase === 'closing' ? 'opacity 0.6s ease-out' : 'opacity 2s ease-out',
-      }}
-    />
-  );
-};
+// ===== 砂嵐オーバーレイ（削除済み） =====
+const SandstormOverlay = ({ phase: _phase }: { phase: Phase }) => null;
 
 // ===== ライン説明テキスト =====
 const LINE_DESCRIPTIONS: Record<LineType, string[]> = {
@@ -639,7 +580,7 @@ export const LineModal = ({ lineId, onClose }: LineModalProps) => {
     <>
       {/* ===== 暗闇背景 ===== */}
       <div
-        className="fixed inset-0 z-[55] bg-[#050505]"
+        className="fixed inset-0 z-[55] bg-[#0B1A0E]"
         style={{
           opacity: phase === 'closing' ? 0 : 1,
           transition: 'opacity 0.6s ease-out',
