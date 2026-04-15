@@ -3,7 +3,7 @@
 import { Suspense, useState, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Environment } from '@react-three/drei';
-import { Bloom, EffectComposer, Vignette, DepthOfField, Noise, Sepia } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, Vignette, DepthOfField, Sepia } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import { LogoMesh } from './LogoMesh';
@@ -262,8 +262,8 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
   const scrollProgress = useScrollProgress();
   const { isMobile } = useResponsive();
 
-  const grassCount = isMobile ? 6000 : 22000;
-  const leafCount = isMobile ? 400000 : 1600000;
+  const grassCount = isMobile ? 3000 : 15000;
+  const leafCount = isMobile ? 150000 : 1000000;
 
   return (
     <>
@@ -317,10 +317,9 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
 
       <GodRays />
 
-      <EffectComposer multisampling={4}>
-        <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />
-        <Bloom luminanceThreshold={0.4} intensity={1.2} mipmapBlur />
-        <Noise opacity={0.35} blendFunction={BlendFunction.OVERLAY} />
+      <EffectComposer multisampling={isMobile ? 0 : 2}>
+        {!isMobile && <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />}
+        <Bloom luminanceThreshold={0.4} intensity={isMobile ? 0.8 : 1.2} mipmapBlur />
         <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
         <Vignette eskil={false} offset={0.05} darkness={0.85} />
       </EffectComposer>
