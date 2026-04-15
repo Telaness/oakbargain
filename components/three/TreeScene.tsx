@@ -317,12 +317,20 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
 
       <GodRays />
 
-      <EffectComposer multisampling={isMobile ? 0 : 2}>
-        {isMobile ? null : <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />}
-        <Bloom luminanceThreshold={0.4} intensity={isMobile ? 0.8 : 1.2} mipmapBlur />
-        <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
-        <Vignette eskil={false} offset={0.05} darkness={0.85} />
-      </EffectComposer>
+      {isMobile ? (
+        <EffectComposer multisampling={0}>
+          <Bloom luminanceThreshold={0.4} intensity={0.8} mipmapBlur />
+          <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
+          <Vignette eskil={false} offset={0.05} darkness={0.85} />
+        </EffectComposer>
+      ) : (
+        <EffectComposer multisampling={2}>
+          <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />
+          <Bloom luminanceThreshold={0.4} intensity={1.2} mipmapBlur />
+          <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
+          <Vignette eskil={false} offset={0.05} darkness={0.85} />
+        </EffectComposer>
+      )}
     </>
   );
 };
