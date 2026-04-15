@@ -36,20 +36,6 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
           <p className="mt-3 text-sm md:text-base tracking-[0.15em] text-[#C4956A] animate-fade-in-delay-2">
             時を旅した輝きに、次の物語を
           </p>
-          <div className="mt-8 flex items-center justify-end gap-2 text-[#6B5B45] text-xs tracking-[0.2em]">
-            <span>SCROLL TO ASCEND</span>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="animate-bounce"
-            >
-              <path d="M12 19V5M5 12l7-7 7 7" />
-            </svg>
-          </div>
         </div>
       )}
 
@@ -123,17 +109,17 @@ export const ImmersiveOverlay = ({ scrollProgress, onNavigate }: ImmersiveOverla
             opacity: Math.min(1, Math.max(0, (scrollProgress - 0.88) / 0.10)),
           }}
         >
-          <p className="text-[10px] tracking-[0.4em] text-[#6B5B45] uppercase mb-4">
+          <p className="text-center text-[10px] tracking-[0.4em] text-[#6B5B45] uppercase mb-4">
             Vintage Jewelry Brand
           </p>
-          <h2 className="text-5xl md:text-7xl font-serif tracking-[0.35em] text-[#B8964E]">
+          <h2 className="text-center text-3xl md:text-7xl font-serif tracking-[0.35em] text-[#B8964E]">
             OAK BARGAIN
           </h2>
           <div
             className="mt-4 h-px bg-gradient-to-r from-transparent via-[#B8964E] to-transparent"
             style={{ width: '120px' }}
           />
-          <p className="mt-5 text-sm tracking-[0.2em] text-[#8B7355]">
+          <p className="text-center mt-5 text-sm tracking-[0.2em] text-[#8B7355]">
             時を旅した輝きに、次の物語を
           </p>
         </div>

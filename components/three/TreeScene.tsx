@@ -263,7 +263,7 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
   const { isMobile } = useResponsive();
 
   const grassCount = isMobile ? 6000 : 22000;
-  const leafCount = isMobile ? 500000 : 2000000;
+  const leafCount = isMobile ? 400000 : 1600000;
 
   return (
     <>
@@ -308,7 +308,7 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
       <Foliage leafCount={leafCount} />
 
       <LuxuryJewelry position={JEWELRY_POSITIONS.luxury} onClick={() => onNavigate('/lines/luxury')} />
-      <PremiumTwigLeaves />
+      <PremiumTwigLeaves onClick={() => onNavigate('/lines/premium')} />
       <PremiumJewelry position={JEWELRY_POSITIONS.premium} onClick={() => onNavigate('/lines/premium')} />
       <StandardJewelry position={JEWELRY_POSITIONS.standard} onClick={() => onNavigate('/lines/standard')} />
       <EntryJewelry position={JEWELRY_POSITIONS.entry} onClick={() => onNavigate('/lines/entry')} />

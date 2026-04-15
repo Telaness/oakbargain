@@ -64,16 +64,18 @@ const FloatingGLB = ({
 export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const innerRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF('/3d/juwely/luxury.glb');
+  const { scene } = useGLTF('/3d/juwely/luxury.glb', '/draco/');
   const cloned = useMemo(() => {
     const c = scene.clone();
-    // マテリアルにエミッシブを追加して暗い環境でも光る
+    // 元のマテリアル色を保ちつつ、自発光で暗所でも見えるようにする
     c.traverse((obj) => {
       if (obj instanceof THREE.Mesh && obj.material) {
         const mat = (obj.material as THREE.MeshStandardMaterial).clone();
-        mat.emissive = new THREE.Color('#D4AF37');
-        mat.emissiveIntensity = 0.6;
-        mat.envMapIntensity = 3.0;
+        const base = mat.color.clone();
+        base.lerp(new THREE.Color('#D4AF37'), 0.25);
+        mat.emissive = base;
+        mat.emissiveIntensity = 0.5;
+        mat.envMapIntensity = 2.5;
         obj.material = mat;
       }
     });
@@ -98,7 +100,7 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
       onPointerOut={() => { document.body.style.cursor = 'default'; }}
     >
       <group ref={innerRef}>
-        <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
+        <primitive object={cloned} scale={80} rotation={[Math.PI / 2, 0, 0]} />
       </group>
       <pointLight color="#FFD700" intensity={15} distance={2000} decay={2} />
     </group>
@@ -140,10 +142,15 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
     <group
       ref={groupRef}
       position={position}
-      onClick={onClick}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
       onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { document.body.style.cursor = 'default'; }}
     >
+      {/* クリック判定用の透明メッシュ */}
+      <mesh>
+        <sphereGeometry args={[300, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
       <group ref={spinRef}>
         <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
       </group>
@@ -183,7 +190,7 @@ export const EntryJewelry = ({ position, onClick }: JewelryProps) => (
 );
 
 // GLBのプリロード
-useGLTF.preload('/3d/juwely/luxury.glb');
+useGLTF.preload('/3d/juwely/luxury.glb', '/draco/');
 useGLTF.preload('/3d/juwely/premium.glb');
 useGLTF.preload('/3d/juwely/standard.glb');
 useGLTF.preload('/3d/juwely/entry.glb');

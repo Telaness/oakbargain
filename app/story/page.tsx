@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Navigation } from '@/components/ui/Navigation';
+import { TransitionLink } from '@/components/ui/TransitionLink';
 
 export const metadata: Metadata = {
   title: 'ブランドストーリー | OAK BARGAIN',
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function StoryPage() {
   return (
-    <div className="min-h-screen bg-[#0A0604]">
+    <div className="min-h-screen bg-[#0B1A0E]">
       <Navigation />
 
       <header className="flex flex-col items-center justify-center px-6 pt-32 pb-16">
@@ -25,60 +25,85 @@ export default function StoryPage() {
       <section className="mx-auto max-w-3xl px-6 py-12">
         <div className="space-y-12">
           <div>
-            <h2 className="text-2xl font-serif tracking-wider text-[#B8964E]">
-              時を旅した輝きに、次の物語を
-            </h2>
-            <p className="mt-6 text-base leading-loose text-[#C4956A]">
-              OAK BARGAINは、ヴィンテージジュエリーに新しい命を吹き込むブランドです。
-              時を経てなお輝き続けるジュエリーには、それぞれに固有の歴史と物語があります。
-              私たちは、その物語を次の持ち主へとつなぐ架け橋でありたいと考えています。
+            <p className="text-base leading-loose text-[#F0EDE6]">
+              時を越えてきたものには、
+              <br />
+              新品にはない美しさがあります。
+            </p>
+            <p className="mt-6 text-base leading-loose text-[#F0EDE6]">
+              傷や艶、重みまでもが、そのジュエリーだけの表情となり、
+              <br />
+              長い時間の中で刻まれた魅力として残っていく。
             </p>
           </div>
 
-          <div className="painting-filter aspect-[16/9] w-full rounded-lg bg-gradient-to-br from-[#2C1A0E] via-[#B8964E]/30 to-[#0A0604]" />
+          <div className="aspect-[16/10] w-full overflow-hidden rounded-lg">
+            <img
+              src="/img/story/story.JPG"
+              alt="OAK BARGAIN ブランドイメージ"
+              className="h-full w-full object-cover object-[center_60%]"
+            />
+          </div>
 
           <div>
-            <h2 className="text-2xl font-serif tracking-wider text-[#B8964E]">
-              大樹のように
-            </h2>
-            <p className="mt-6 text-base leading-loose text-[#C4956A]">
-              ブランド名「OAK BARGAIN」の「OAK（オーク）」は、堅牢で長寿な樫の木に由来しています。
-              年輪を重ねるごとに強くなり、深い味わいを増していく大樹のように、
-              時を経たジュエリーにこそ宿る価値を大切にしています。
-            </p>
-            <p className="mt-4 text-base leading-loose text-[#C4956A]">
-              花・葉・枝・幹——大樹を構成するすべての要素が、
-              それぞれの役割と美しさを持つように、
-              OAK BARGAINの4つのラインはそれぞれが独自の魅力を持っています。
+            <p className="text-base leading-loose text-[#F0EDE6]">
+              OAK BARGAINは、
+              <br />
+              そんなヴィンテージジュエリーが持つ記憶と存在感を、
+              <br />
+              現代の感性であらためて届けるブランドです。
             </p>
           </div>
 
           <div>
-            <h2 className="text-2xl font-serif tracking-wider text-[#B8964E]">
-              出会いの場
-            </h2>
-            <p className="mt-6 text-base leading-loose text-[#C4956A]">
-              OAK BARGAINでは、オンライン販売は行っておりません。
-              それは、ジュエリーとの出会いは五感で感じていただきたいから。
-              実店舗やポップアップイベントでの特別な出会いを大切にしています。
+            <p className="text-base leading-loose text-[#F0EDE6]">
+              私たちが大切にしているのは、
+              <br />
+              ただ古いものを並べることではありません。
             </p>
-            <p className="mt-4 text-base leading-loose text-[#C4956A]">
-              手に取った瞬間の重み、光にかざした時の輝き、
-              肌に触れた時の温もり——
-              画面越しでは伝わらない、そのジュエリーだけが持つ魅力を、
-              ぜひ直接お確かめください。
+            <p className="mt-6 text-base leading-loose text-[#F0EDE6]">
+              素材が持つ価値、時を経たからこそ宿る空気、
+              <br />
+              そしてその瞬間にしか生まれない"出会い"の特別さ。
+            </p>
+          </div>
+
+          <div>
+            <p className="text-base leading-loose text-[#F0EDE6]">
+              ヴィンテージジュエリーは、今あるものの中から
+              <br />
+              自分に合うものと巡り合うこと自体が魅力だと考えています。
+            </p>
+          </div>
+
+          <div>
+            <p className="text-base leading-loose text-[#F0EDE6]">
+              だからOAK BARGAINは、オンラインでは販売しません。
+            </p>
+            <p className="mt-6 text-base leading-loose text-[#F0EDE6]">
+              実際に見て、手に取り、試しながら出会う体験までを、
+              <br />
+              ブランドの価値として大切にしているからです。
+            </p>
+          </div>
+
+          <div className="border-t border-[#B8964E]/30 pt-12">
+            <p className="text-center text-lg font-serif tracking-wider leading-loose text-[#B8964E]">
+              時を旅した輝きに、次の物語をつなぐ。
+              <br />
+              それが、OAK BARGAINです。
             </p>
           </div>
         </div>
       </section>
 
       <section className="flex justify-center pb-20">
-        <Link
+        <TransitionLink
           href="/"
           className="inline-block border border-[#B8964E] px-10 py-4 text-sm tracking-[0.2em] text-[#B8964E] transition-all hover:bg-white/10"
         >
           BACK TO TOP
-        </Link>
+        </TransitionLink>
       </section>
     </div>
   );

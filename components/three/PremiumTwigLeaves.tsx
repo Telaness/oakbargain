@@ -72,7 +72,7 @@ const buildSubCurve = (
 };
 
 // ===== Premium Line: 幹から生えた小枝 + 葉（扇状に広がる） =====
-export const PremiumTwigLeaves = () => {
+export const PremiumTwigLeaves = ({ onClick }: { onClick?: () => void }) => {
   const groupRef = useRef<THREE.Group>(null);
   const leafMeshRef = useRef<THREE.InstancedMesh>(null);
   const leafMaterialRef = useRef<THREE.ShaderMaterial>(null);
@@ -288,7 +288,12 @@ export const PremiumTwigLeaves = () => {
   });
 
   return (
-    <group ref={groupRef}>
+    <group
+      ref={groupRef}
+      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+      onPointerOver={() => { if (onClick) document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { document.body.style.cursor = 'default'; }}
+    >
       <mesh geometry={twigGeo} material={barkMaterial} castShadow />
       {subGeos.map((geo, i) => (
         <mesh key={`sub-${i}`} geometry={geo} material={barkMaterial} castShadow />

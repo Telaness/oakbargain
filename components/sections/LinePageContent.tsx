@@ -5,6 +5,13 @@ import Link from 'next/link';
 import type { LineConfig } from '@/types/line';
 import { Navigation } from '@/components/ui/Navigation';
 
+const LINE_IMAGES: Record<string, string> = {
+  luxury: '/img/line/luxury.jpg',
+  premium: '/img/line/premium.JPG',
+  standard: '/img/line/standard.JPG',
+  entry: '/img/line/entry.JPEG',
+};
+
 interface LinePageContentProps {
   config: LineConfig;
 }
@@ -73,12 +80,13 @@ export const LinePageContent = ({ config }: LinePageContentProps) => {
           transition: 'opacity 0.8s ease-out 0.6s, transform 0.8s ease-out 0.6s',
         }}
       >
-        <div
-          className="painting-filter aspect-[16/9] w-full rounded-lg"
-          style={{
-            background: `linear-gradient(135deg, ${config.colors.bg}, ${config.colors.accent}60, ${config.colors.bg})`,
-          }}
-        />
+        <div className="painting-filter aspect-[16/9] w-full overflow-hidden rounded-lg">
+          <img
+            src={LINE_IMAGES[config.id]}
+            alt={`${config.name} イメージ`}
+            className="h-full w-full object-cover"
+          />
+        </div>
       </section>
 
       {/* コンテンツ */}

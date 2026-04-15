@@ -2,7 +2,7 @@
 
 @theme inline {
   --font-serif: var(--font-cormorant), 'Georgia', serif;
-  --font-sans: var(--font-noto-sans-jp), 'Helvetica Neue', sans-serif;
+  --font-sans: var(--font-noto-serif-jp), 'Georgia', serif;
 }
 
 /* ===== Base Styles ===== */

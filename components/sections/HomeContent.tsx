@@ -58,7 +58,7 @@ export const HomeContent = () => {
       />
 
       {/* Line詳細モーダル */}
-      <LineModal lineId={modalLine} onClose={handleCloseModal} />
+      <LineModal key={modalLine ?? 'none'} lineId={modalLine} onClose={handleCloseModal} />
 
       {/* スクロール用スペーサー（木を旅する長さ） */}
       <div

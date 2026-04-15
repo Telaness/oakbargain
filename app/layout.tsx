@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Noto_Sans_JP } from 'next/font/google';
+import { Cormorant_Garamond, Noto_Serif_JP } from 'next/font/google';
 import './globals.css';
 
 const cormorant = Cormorant_Garamond({
@@ -9,8 +9,8 @@ const cormorant = Cormorant_Garamond({
   display: 'swap',
 });
 
-const notoSansJP = Noto_Sans_JP({
-  variable: '--font-noto-sans-jp',
+const notoSerifJP = Noto_Serif_JP({
+  variable: '--font-noto-serif-jp',
   subsets: ['latin'],
   weight: ['300', '400', '500', '700'],
   display: 'swap',
@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${cormorant.variable} ${notoSansJP.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${notoSerifJP.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#0A0604] text-[#F0EDE6]">
         {children}
