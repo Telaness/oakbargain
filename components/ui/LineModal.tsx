@@ -401,7 +401,8 @@ const FrameScene = ({ lineId, showDetail, wave, onAllCleared, isMobile }: {
 type Phase = 'idle' | 'sandstorm' | 'reveal' | 'detail' | 'closing';
 
 // ===== 砂嵐オーバーレイ（削除済み） =====
-const SandstormOverlay = ({ phase: _phase }: { phase: Phase }) => null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const SandstormOverlay = ({ phase }: { phase: Phase }) => null;
 
 // ===== ライン説明テキスト =====
 const LINE_DESCRIPTIONS: Record<LineType, string[]> = {
