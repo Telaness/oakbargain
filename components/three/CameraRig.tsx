@@ -27,9 +27,10 @@ const computeBranchSamples = (): BranchSample[] => {
 
 const branchSamples = computeBranchSamples();
 
+const _branchDiff = new THREE.Vector3();
 const pushAwayFromBranches = (camPos: THREE.Vector3): void => {
-  const diff = new THREE.Vector3();
   for (const sample of branchSamples) {
+    const diff = _branchDiff;
     diff.subVectors(camPos, sample.pos);
     const dist = diff.length();
     if (dist < sample.radius && dist > 0.01) {

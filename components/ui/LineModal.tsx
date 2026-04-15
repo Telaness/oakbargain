@@ -200,8 +200,7 @@ const OrnateFrame = ({ onTouch, showDetail, isMobile }: { onTouch: () => void; s
   );
 };
 
-useGLTF.preload('/3d/ornate_frame_3.glb');
-useGLTF.preload('/3d/cannabis_damaged.glb');
+// preloadは削除 — LineModal表示時に遅延読み込み
 
 // ===== 落ち葉（クリックで払い落とす） =====
 interface LeafState {
@@ -215,7 +214,7 @@ interface LeafState {
   modelIdx: number;
 }
 
-const LEAF_COUNT = 700;
+const LEAF_COUNT = 400;
 
 // 各ウェーブで飛ばす割合: 1回目25%, 2回目25%, 3回目30%, 4回目で残り全部
 const WAVE_RATIOS = [0.25, 0.25, 0.3, 1.0];
@@ -233,7 +232,6 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
     const states: LeafState[] = [];
     const clonedScenes: THREE.Object3D[] = [];
 
-    // ガウス分布（中央に密集、端はまばら）
     const gaussian = () => {
       const u1 = Math.random();
       const u2 = Math.random();
@@ -241,7 +239,6 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
     };
 
     for (let i = 0; i < LEAF_COUNT; i++) {
-      // 中央密集のガウス分布、範囲を狭めに
       const x = gaussian() * 0.7;
       const y = gaussian() * 0.55;
       const z = 0.05 + Math.random() * 0.4;
@@ -680,7 +677,8 @@ export const LineModal = ({ lineId, onClose }: LineModalProps) => {
       >
         <Canvas
           camera={{ fov: 40, near: 0.1, far: 100, position: [0, 0, 5] }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
+          dpr={[1, 1.5]}
           style={{ width: '100%', height: '100vh', background: 'transparent' }}
         >
           <Suspense fallback={null}>

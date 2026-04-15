@@ -2,8 +2,7 @@
 
 import { Suspense, useState, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
-import { Bloom, EffectComposer, Vignette, DepthOfField, Sepia } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, Vignette, Sepia } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 import { LogoMesh } from './LogoMesh';
@@ -263,7 +262,7 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
   const { isMobile } = useResponsive();
 
   const grassCount = isMobile ? 3000 : 15000;
-  const leafCount = isMobile ? 150000 : 1000000;
+  const leafCount = isMobile ? 200000 : 800000;
 
   return (
     <>
@@ -275,16 +274,16 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
 
       {/* 黒い世界: 空なし、暗いEnvironment */}
       <color attach="background" args={['#080808']} />
-      <Environment preset="night" background={false} environmentIntensity={0.15} />
+      {/* ライティングのみで環境表現（Environment削除で軽量化） */}
 
       <ambientLight intensity={0.08} color="#1A1410" />
       <directionalLight
         intensity={1.2}
         position={[200, 4000, 400]}
-        castShadow
+        castShadow={!isMobile}
         color="#8B7355"
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={25000}
         shadow-camera-left={-12000}
         shadow-camera-right={12000}
@@ -294,9 +293,6 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
         shadow-normalBias={0.02}
       />
       <hemisphereLight args={['#0A0A0F', '#0A0804', 0.15]} />
-      <directionalLight intensity={0.3} position={[-120, 800, 250]} color="#6B4A28" />
-      <directionalLight intensity={0.2} position={[-150, 600, -400]} color="#4A3520" />
-      <pointLight intensity={0.08} position={[0, -400, 150]} color="#3A2A10" distance={500} decay={2} />
 
       <fog attach="fog" args={['#050505', 3000, 25000]} />
 
@@ -317,26 +313,18 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
 
       <GodRays />
 
-      {isMobile ? (
-        <EffectComposer multisampling={0}>
-          <Bloom luminanceThreshold={0.4} intensity={0.8} mipmapBlur />
-          <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
-          <Vignette eskil={false} offset={0.05} darkness={0.85} />
-        </EffectComposer>
-      ) : (
-        <EffectComposer multisampling={2}>
-          <DepthOfField focusDistance={0.01} focalLength={0.06} bokehScale={2.5} />
-          <Bloom luminanceThreshold={0.4} intensity={1.2} mipmapBlur />
-          <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
-          <Vignette eskil={false} offset={0.05} darkness={0.85} />
-        </EffectComposer>
-      )}
+      <EffectComposer multisampling={isMobile ? 0 : 2}>
+        <Bloom luminanceThreshold={0.4} intensity={isMobile ? 0.6 : 1.0} mipmapBlur />
+        <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
+        <Vignette eskil={false} offset={0.05} darkness={0.85} />
+      </EffectComposer>
     </>
   );
 };
 
 interface TreeSceneProps {
   onNavigate: (path: string) => void;
+  paused?: boolean;
 }
 
 // ===== ライン名オーバーレイ =====
@@ -395,7 +383,7 @@ const LineNameOverlay = ({ scrollProgress }: { scrollProgress: number }) => {
   );
 };
 
-export const TreeScene = ({ onNavigate }: TreeSceneProps) => {
+export const TreeScene = ({ onNavigate, paused }: TreeSceneProps) => {
   const scrollProgress = useScrollProgress();
 
   return (
@@ -410,7 +398,8 @@ export const TreeScene = ({ onNavigate }: TreeSceneProps) => {
           powerPreference: 'high-performance',
         }}
         shadows={{ type: THREE.PCFSoftShadowMap }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
+        frameloop={paused ? 'never' : 'always'}
         style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
       >
         <Suspense fallback={null}>

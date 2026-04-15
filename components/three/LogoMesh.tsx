@@ -46,6 +46,7 @@ const computeBranchSamples = (): BranchSample[] => {
 
 const branchSamples = computeBranchSamples();
 
+const _logoDiff = new THREE.Vector3();
 const pushAwayFromTree = (pos: THREE.Vector3): void => {
   // 幹からの回避
   const xzDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
@@ -58,13 +59,12 @@ const pushAwayFromTree = (pos: THREE.Vector3): void => {
   }
 
   // 枝からの回避
-  const diff = new THREE.Vector3();
   for (const sample of branchSamples) {
-    diff.subVectors(pos, sample.pos);
-    const dist = diff.length();
+    _logoDiff.subVectors(pos, sample.pos);
+    const dist = _logoDiff.length();
     if (dist < sample.radius && dist > 0.01) {
-      diff.normalize().multiplyScalar(sample.radius - dist);
-      pos.add(diff);
+      _logoDiff.normalize().multiplyScalar(sample.radius - dist);
+      pos.add(_logoDiff);
     }
   }
 };
@@ -112,20 +112,23 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
   const prevScroll = useRef(scrollProgress);
   const spinAngle = useRef(0);
 
+  // 毎フレーム再利用するオブジェクト
+  const _forward = useMemo(() => new THREE.Vector3(), []);
+  const _right = useMemo(() => new THREE.Vector3(), []);
+  const _up = useMemo(() => new THREE.Vector3(), []);
+  const _lookObj = useMemo(() => new THREE.Object3D(), []);
+  const _targetQuat = useMemo(() => new THREE.Quaternion(), []);
+
   useFrame(({ clock }, delta) => {
     if (!groupRef.current) return;
 
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    _forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    _right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    _up.set(0, 1, 0).applyQuaternion(camera.quaternion);
 
-    // ジュエリーフォーカス時の退避度合い（0=通常, 1=フォーカス中）
     const { blend: focusBlend, direction } = getJewelryFocus(scrollProgress);
 
-    // 通常時: カメラ前方の下寄り中央
-    // フォーカス時: 端の下に退避
     const dist = 150;
-    // 最初は上寄り、スクロールが進むと下寄りに移行、最後は正面上寄り
     const endBlendForPos = THREE.MathUtils.smoothstep(scrollProgress, 0.85, 0.95);
     const baseUp = THREE.MathUtils.lerp(10, -20, THREE.MathUtils.smoothstep(scrollProgress, 0, 0.1));
     const normalUp = THREE.MathUtils.lerp(baseUp, -50, focusBlend);
@@ -134,11 +137,10 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     const scaleTarget = THREE.MathUtils.lerp(1, 0.6, focusBlend);
 
     targetPos.current.copy(camera.position)
-      .add(forward.clone().multiplyScalar(dist))
-      .add(up.clone().multiplyScalar(upOffset))
-      .add(right.clone().multiplyScalar(rightOffset));
+      .addScaledVector(_forward, dist)
+      .addScaledVector(_up, upOffset)
+      .addScaledVector(_right, rightOffset);
 
-    // 幹・枝との衝突回避
     pushAwayFromTree(targetPos.current);
 
     if (!initialized.current) {
@@ -147,18 +149,14 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     }
 
     currentPos.current.lerp(targetPos.current, 0.03);
-
-    // lerp後も再度衝突チェック
     pushAwayFromTree(currentPos.current);
 
     groupRef.current.position.copy(currentPos.current);
 
-    // スケール（フォーカス時は小さくなる）
     const currentScale = groupRef.current.scale.x;
     const newScale = THREE.MathUtils.lerp(currentScale, 4 * scaleTarget, 0.05);
     groupRef.current.scale.setScalar(newScale);
 
-    // 自転（ベース回転 + スクロール速度に比例して加速）
     const scrollDelta = Math.abs(scrollProgress - prevScroll.current);
     prevScroll.current = scrollProgress;
     const scrollSpeed = scrollDelta / Math.max(delta, 0.001);
@@ -167,23 +165,20 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     const scrollBoost = scrollSpeed * 80 * (1 - endBlend);
     spinAngle.current += (baseSpeed + scrollBoost) * delta;
 
-    // 一番下に近づいたらカメラ正面を向く
     if (endBlend > 0) {
-      const lookObj = new THREE.Object3D();
-      lookObj.position.copy(currentPos.current);
-      lookObj.lookAt(camera.position);
-      lookObj.rotateX(Math.PI);
-      lookObj.rotateY(Math.PI);
-
-      // 自転→lookAtへ段階的に遷移（現在の回転から目標へslerp）
-      groupRef.current.quaternion.slerp(lookObj.quaternion, 0.05);
+      _lookObj.position.copy(currentPos.current);
+      _lookObj.lookAt(camera.position);
+      _lookObj.rotation.x = Math.PI;
+      _lookObj.rotation.y = Math.PI;
+      _lookObj.updateMatrix();
+      groupRef.current.quaternion.slerp(_lookObj.quaternion, 0.05);
     } else {
-      // 通常の自転に戻る際、lookAtで付いたX/Z回転をなめらかにリセット
-      const targetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, spinAngle.current, 0));
-      groupRef.current.quaternion.slerp(targetQuat, 0.05);
+      _targetQuat.setFromEuler(groupRef.current.rotation).slerp(
+        _targetQuat.setFromAxisAngle(_up.set(0, 1, 0), spinAngle.current), 0.05
+      );
+      groupRef.current.quaternion.copy(_targetQuat);
     }
 
-    // 浮遊感
     const bob = Math.sin(clock.getElapsedTime() * 0.5) * 3;
     groupRef.current.position.y += bob;
   });
