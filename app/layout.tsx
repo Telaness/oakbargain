@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: 'OAK BARGAIN | 時を旅した輝きに、次の物語を',
   description:
     'ヴィンテージジュエリーブランド OAK BARGAIN。時を経て受け継がれてきたジュエリーの魅力を、現代の感性で再提案。',
+  icons: {
+    icon: '/img/oakbargain-fav.jpg',
+  },
   openGraph: {
     title: 'OAK BARGAIN',
     description: '時を旅した輝きに、次の物語を',
