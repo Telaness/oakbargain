@@ -148,7 +148,7 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
       initialized.current = true;
     }
 
-    currentPos.current.lerp(targetPos.current, 0.03);
+    currentPos.current.lerp(targetPos.current, 0.2);
     pushAwayFromTree(currentPos.current);
 
     groupRef.current.position.copy(currentPos.current);

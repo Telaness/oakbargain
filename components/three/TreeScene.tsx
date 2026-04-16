@@ -1,11 +1,11 @@
 'use client';
 
 import { Suspense, useState, useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Bloom, EffectComposer, Vignette, Sepia } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { LogoMesh } from './LogoMesh';
+import { Sky } from '@react-three/drei';
 import { TreeTrunk, TreeBranches, BRANCH_DEFS, buildBranchCurve, getTrunkRadius } from './TreeParts';
 import { Foliage } from './Foliage';
 import { CameraRig, getActiveLineName } from './CameraRig';
@@ -73,13 +73,14 @@ const computeJewelryPositions = () => {
 
 const JEWELRY_POSITIONS = computeJewelryPositions();
 
-// ===== 草原の地面 =====
+
+// ===== 緑の草原の地面 =====
 const GrassGround = () => {
   const material = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
-      roughness: 0.88,
+      roughness: 0.85,
       metalness: 0,
-      envMapIntensity: 0.3,
+      envMapIntensity: 0.5,
     });
 
     mat.onBeforeCompile = (shader) => {
@@ -93,7 +94,7 @@ const GrassGround = () => {
         ].join('\n'))
         .replace('#include <begin_vertex>', [
           'vec3 transformed = vec3(position);',
-          'float hill = gfbm(position.xz * 0.004) * 8.0 + gn(position.xz * 0.025) * 1.0;',
+          'float hill = gfbm(position.xz * 0.003) * 12.0 + gn(position.xz * 0.02) * 2.0;',
           'transformed.z += hill;',
           'vGWP = (modelMatrix * vec4(transformed, 1.0)).xyz;',
         ].join('\n'));
@@ -108,21 +109,22 @@ const GrassGround = () => {
         ].join('\n'))
         .replace('#include <color_fragment>', [
           'vec2 gp = vGWP.xz;',
-          'float gN1=gfbm2(gp*0.06); float gN2=gn2(gp*0.4); float gN3=gn2(gp*1.5);',
-          'vec3 gDk=vec3(0.04,0.03,0.02); vec3 gMd=vec3(0.08,0.06,0.04);',
-          'vec3 gLt=vec3(0.12,0.09,0.05); vec3 gYl=vec3(0.10,0.07,0.04);',
-          'vec3 gc=mix(gDk,gMd,gN1); gc=mix(gc,gLt,gN2*0.5);',
-          'float dp=smoothstep(0.52,0.62,gn2(gp*0.08+5.0)); gc=mix(gc,gYl,dp*0.35);',
-          'gc+=gN3*0.05;',
+          'float gN1=gfbm2(gp*0.04); float gN2=gn2(gp*0.3); float gN3=gn2(gp*1.2);',
+          // 草原の緑ベースカラー
+          'vec3 gDk=vec3(0.12,0.18,0.06); vec3 gMd=vec3(0.18,0.28,0.08);',
+          'vec3 gLt=vec3(0.25,0.38,0.12); vec3 gYl=vec3(0.30,0.35,0.10);',
+          'vec3 gc=mix(gDk,gMd,gN1); gc=mix(gc,gLt,gN2*0.6);',
+          // 黄緑のパッチ
+          'float dp=smoothstep(0.48,0.60,gn2(gp*0.06+5.0)); gc=mix(gc,gYl,dp*0.3);',
+          'gc+=gN3*0.03;',
+          // 木の根元は少し暗い（日陰）
           'float dt = length(gp);',
-          'float canopyShade = smoothstep(5000.0, 1800.0, dt) * 0.15;',
+          'float canopyShade = smoothstep(4000.0, 1500.0, dt) * 0.2;',
           'gc *= (1.0 - canopyShade);',
-          'float mossBlend = smoothstep(2800.0, 2000.0, dt);',
-          'float mossNoise = gfbm2(gp * 0.3 + 10.0);',
-          'vec3 mossGreen = mix(vec3(0.05,0.04,0.02), vec3(0.08,0.06,0.03), mossNoise);',
-          'gc = mix(gc, mossGreen, mossBlend * 0.6);',
-          'float bareRing = smoothstep(2600.0, 2000.0, dt);',
-          'gc = mix(gc, vec3(0.06,0.05,0.03), bareRing * 0.2);',
+          // 根元付近は土っぽく
+          'float bareRing = smoothstep(2200.0, 1600.0, dt);',
+          'vec3 earthColor = vec3(0.18,0.14,0.08);',
+          'gc = mix(gc, earthColor, bareRing * 0.4);',
           'diffuseColor=vec4(gc,1.0);',
         ].join('\n'));
 
@@ -138,7 +140,7 @@ const GrassGround = () => {
   );
 };
 
-// ===== 草の葉 =====
+// ===== 緑の草の葉 =====
 const GrassBlades = ({ count }: { count: number }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -211,7 +213,11 @@ const GrassBlades = ({ count }: { count: number }) => {
         fragmentShader={`
           varying float vH;
           void main() {
-            vec3 c = mix(vec3(0.04,0.03,0.02), mix(vec3(0.08,0.06,0.03), vec3(0.12,0.08,0.04), smoothstep(0.4,1.0,vH)), smoothstep(0.0,0.4,vH));
+            // 根元は濃い緑、先端は明るい黄緑
+            vec3 baseGreen = vec3(0.10, 0.20, 0.04);
+            vec3 midGreen  = vec3(0.18, 0.32, 0.08);
+            vec3 tipGreen  = vec3(0.30, 0.45, 0.12);
+            vec3 c = mix(baseGreen, mix(midGreen, tipGreen, smoothstep(0.4,1.0,vH)), smoothstep(0.0,0.4,vH));
             gl_FragColor = vec4(c, mix(1.0,0.7,smoothstep(0.7,1.0,vH)));
           }
         `}
@@ -220,40 +226,74 @@ const GrassBlades = ({ count }: { count: number }) => {
   );
 };
 
-// ===== ゴッドレイ =====
-const GodRays = () => {
-  const groupRef = useRef<THREE.Group>(null);
+// ===== 物理ベースの青空（Preetham大気散乱モデル） =====
+// turbidity: 大気の濁り（低い=澄んだ青空）
+// rayleigh: レイリー散乱係数（高い=より青い空）
+// sunPosition: 太陽の位置
+const SkyDome = () => (
+  <Sky
+    distance={450000}
+    sunPosition={[10000, 500, 5000]}
+    turbidity={10}
+    rayleigh={0.3}
+    mieCoefficient={0.0005}
+    mieDirectionalG={0.4}
+  />
+);
 
-  useFrame(({ clock }) => {
-    if (!groupRef.current) return;
-    const t = clock.getElapsedTime();
-    groupRef.current.children.map((child, i) => {
-      const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.025 + Math.sin(t * 0.15 + i * 1.2) * 0.012;
-    });
-  });
+// ===== 常に晴天のライティング =====
+const Atmosphere = ({ isMobile }: { isMobile: boolean }) => {
+  const { scene, gl } = useThree();
 
-  const rays = useMemo(() => [
-    { x: 100, z: 50, rot: -0.2, w: 44, h: 1200 },
-    { x: 36, z: -24, rot: -0.15, w: 30, h: 1140 },
-    { x: -50, z: 70, rot: -0.25, w: 48, h: 1260 },
-    { x: 140, z: -36, rot: -0.1, w: 32, h: 1080 },
-    { x: -24, z: 120, rot: -0.3, w: 40, h: 1170 },
-    { x: 70, z: -100, rot: -0.18, w: 44, h: 1230 },
-  ], []);
+  useEffect(() => {
+    scene.background = null;
+    gl.toneMappingExposure = 0.3;
+  }, [scene, gl]);
 
   return (
-    <group ref={groupRef}>
-      {rays.map((r, i) => (
-        <mesh key={i} position={[r.x, 1200, r.z]} rotation={[0, 0, r.rot]}>
-          <planeGeometry args={[r.w, r.h]} />
-          <meshBasicMaterial color="#4A3520" transparent opacity={0.015} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-      ))}
-    </group>
+    <>
+      {/* 環境光: 空全体からの柔らかい光 */}
+      <ambientLight intensity={0.4} color="#D8E8FF" />
+      {/* 太陽: 自然な強さ */}
+      <directionalLight
+        intensity={1.0}
+        position={[5000, 4000, 3000]}
+        castShadow={!isMobile}
+        color="#FFF8F0"
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={25000}
+        shadow-camera-left={-12000}
+        shadow-camera-right={12000}
+        shadow-camera-top={12000}
+        shadow-camera-bottom={-1500}
+        shadow-bias={-0.0003}
+        shadow-normalBias={0.02}
+      />
+      {/* 空（青）と地面（緑）の反射光 */}
+      <hemisphereLight args={['#5090D0', '#3A8030', 0.45]} />
+      {/* 遠景の空気遠近感 */}
+      <fog attach="fog" args={['#B8D8F0', 12000, 45000]} />
+    </>
   );
 };
 
+// ===== ポストプロセッシング =====
+const PostProcessing = ({ isMobile }: { isMobile: boolean }) => (
+  <EffectComposer multisampling={isMobile ? 0 : 2}>
+    <Bloom
+      luminanceThreshold={0.5}
+      intensity={isMobile ? 0.5 : 0.9}
+      mipmapBlur
+      luminanceSmoothing={0.4}
+    />
+    <Vignette
+      eskil={false}
+      offset={0.2}
+      darkness={0.15}
+    />
+  </EffectComposer>
+);
 
 // ===== メインシーン =====
 const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }) => {
@@ -272,29 +312,8 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
         mouseNY={mousePosition.normalizedY}
       />
 
-      {/* 黒い世界: 空なし、暗いEnvironment */}
-      <color attach="background" args={['#080808']} />
-      {/* ライティングのみで環境表現（Environment削除で軽量化） */}
-
-      <ambientLight intensity={0.08} color="#1A1410" />
-      <directionalLight
-        intensity={1.2}
-        position={[200, 4000, 400]}
-        castShadow={!isMobile}
-        color="#8B7355"
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-far={25000}
-        shadow-camera-left={-12000}
-        shadow-camera-right={12000}
-        shadow-camera-top={10000}
-        shadow-camera-bottom={-1500}
-        shadow-bias={-0.0003}
-        shadow-normalBias={0.02}
-      />
-      <hemisphereLight args={['#0A0A0F', '#0A0804', 0.15]} />
-
-      <fog attach="fog" args={['#050505', 3000, 25000]} />
+      {/* 常に晴天のライティング */}
+      <Atmosphere isMobile={isMobile} />
 
       <GrassGround />
       <GrassBlades count={grassCount} />
@@ -311,13 +330,10 @@ const TreeSceneContent = ({ onNavigate }: { onNavigate: (path: string) => void }
 
       <LogoMesh scrollProgress={scrollProgress} />
 
-      <GodRays />
+      {/* 満点の青�� */}
+      <SkyDome />
 
-      <EffectComposer multisampling={isMobile ? 0 : 2}>
-        <Bloom luminanceThreshold={0.4} intensity={isMobile ? 0.6 : 1.0} mipmapBlur />
-        <Sepia intensity={0.25} blendFunction={BlendFunction.NORMAL} />
-        <Vignette eskil={false} offset={0.05} darkness={0.85} />
-      </EffectComposer>
+      <PostProcessing isMobile={isMobile} />
     </>
   );
 };
@@ -393,7 +409,7 @@ export const TreeScene = ({ onNavigate, paused }: TreeSceneProps) => {
         camera={{ fov: 65, near: 0.1, far: 50000, position: [0, -300, 600] }}
         gl={{
           antialias: true,
-          toneMappingExposure: 0.7,
+          toneMappingExposure: 0.3,
           toneMapping: THREE.ACESFilmicToneMapping,
           powerPreference: 'high-performance',
         }}

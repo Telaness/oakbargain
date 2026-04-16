@@ -55,7 +55,7 @@ const FloatingGLB = ({
       <group ref={innerRef}>
         <primitive object={cloned} scale={scale} rotation={initialRotation} />
       </group>
-      <pointLight color={lightColor} intensity={lightIntensity} distance={1500} decay={2} />
+      <pointLight color={lightColor} intensity={lightIntensity * 2} distance={2500} decay={1.5} />
     </group>
   );
 };
@@ -74,8 +74,8 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
         const base = mat.color.clone();
         base.lerp(new THREE.Color('#D4AF37'), 0.25);
         mat.emissive = base;
-        mat.emissiveIntensity = 0.5;
-        mat.envMapIntensity = 2.5;
+        mat.emissiveIntensity = 0.15;
+        mat.envMapIntensity = 1.5;
         obj.material = mat;
       }
     });
@@ -102,7 +102,7 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
       <group ref={innerRef}>
         <primitive object={cloned} scale={80} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#FFD700" intensity={15} distance={2000} decay={2} />
+      <pointLight color="#FFD700" intensity={12} distance={2000} decay={2} />
     </group>
   );
 };
@@ -114,7 +114,6 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
   const { scene } = useGLTF('/3d/juwely/premium.glb');
   const cloned = useMemo(() => {
     const c = scene.clone();
-    // モデルの中心を原点に合わせる（公転防止）
     c.position.set(0, 0, 0);
     c.rotation.set(0, 0, 0);
     c.scale.set(1, 1, 1);
@@ -124,6 +123,14 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
     c.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.translate(-center.x, -center.y, -center.z);
+        if (child.material) {
+          const mat = (child.material as THREE.MeshStandardMaterial).clone();
+          const base = mat.color.clone();
+          mat.emissive = base.clone().lerp(new THREE.Color('#88CCAA'), 0.08);
+          mat.emissiveIntensity = 0.2;
+          mat.envMapIntensity = 1.5;
+          child.material = mat;
+        }
       }
     });
     return c;
@@ -154,7 +161,7 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
       <group ref={spinRef}>
         <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#88CCAA" intensity={18} distance={1500} decay={2} />
+      <pointLight color="#88CCAA" intensity={12} distance={2000} decay={2} />
     </group>
   );
 };
