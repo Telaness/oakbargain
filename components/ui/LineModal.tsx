@@ -214,19 +214,22 @@ interface LeafState {
   modelIdx: number;
 }
 
-const LEAF_COUNT = 250;
+const LEAF_COUNT_DESKTOP = 250;
+const LEAF_COUNT_MOBILE = 80;
 
 // 各ウェーブで飛ばす割合: 1回目25%, 2回目25%, 3回目30%, 4回目で残り全部
 const WAVE_RATIOS = [0.25, 0.25, 0.3, 1.0];
 const WAVE_COUNT = 4;
 
-const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () => void }) => {
+const FallenLeaves = ({ wave, onAllCleared, isMobile }: { wave: number; onAllCleared: () => void; isMobile: boolean }) => {
   const groupRef = useRef<THREE.Group>(null);
   const leafRefs = useRef<(THREE.Object3D | null)[]>([]);
   const { scene: damagedScene } = useGLTF('/3d/cannabis_damaged.glb', '/draco/');
   const processedWave = useRef(0);
 
   const leafStates = useRef<LeafState[]>([]);
+
+  const leafCount = isMobile ? LEAF_COUNT_MOBILE : LEAF_COUNT_DESKTOP;
 
   const clones = useMemo(() => {
     const states: LeafState[] = [];
@@ -238,9 +241,16 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
       return Math.sqrt(-2 * Math.log(u1 || 0.001)) * Math.cos(2 * Math.PI * u2);
     };
 
-    for (let i = 0; i < LEAF_COUNT; i++) {
-      const x = gaussian() * 0.7;
-      const y = gaussian() * 0.55;
+    // モバイル: σを小さくして中央に密集させ、少ない枚数でも額縁中央を覆う
+    const spreadX = isMobile ? 0.35 : 0.7;
+    const spreadY = isMobile ? 0.28 : 0.55;
+    // モバイル: 葉を少し大きくして隙間を埋める
+    const scaleBase = isMobile ? 0.28 : 0.2;
+    const scaleRange = isMobile ? 0.3 : 0.25;
+
+    for (let i = 0; i < leafCount; i++) {
+      const x = gaussian() * spreadX;
+      const y = gaussian() * spreadY;
       const z = 0.05 + Math.random() * 0.4;
 
       states.push({
@@ -252,7 +262,7 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
         ),
         vel: new THREE.Vector3(),
         rotVel: new THREE.Vector3(),
-        scale: 0.2 + Math.random() * 0.25,
+        scale: scaleBase + Math.random() * scaleRange,
         resting: true,
         gone: false,
         modelIdx: 1,
@@ -274,7 +284,7 @@ const FallenLeaves = ({ wave, onAllCleared }: { wave: number; onAllCleared: () =
 
     leafStates.current = states;
     return clonedScenes;
-  }, [damagedScene]);
+  }, [damagedScene, leafCount, isMobile]);
 
   useEffect(() => {
     if (groupRef.current) {
@@ -391,7 +401,7 @@ const FrameScene = ({ lineId, showDetail, wave, onAllCleared, isMobile }: {
       <Environment preset="apartment" environmentIntensity={0.3} />
       <FrameImage lineId={lineId} showDetail={showDetail} isMobile={isMobile} />
       <OrnateFrame onTouch={handleTouch} showDetail={showDetail} isMobile={isMobile} />
-      <FallenLeaves wave={wave} onAllCleared={onAllCleared} />
+      <FallenLeaves wave={wave} onAllCleared={onAllCleared} isMobile={isMobile} />
       <DustBurst key={dustKey} active={dustKey > 0} />
     </>
   );
