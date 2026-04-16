@@ -74,8 +74,8 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
         const base = mat.color.clone();
         base.lerp(new THREE.Color('#D4AF37'), 0.25);
         mat.emissive = base;
-        mat.emissiveIntensity = 0.15;
-        mat.envMapIntensity = 1.5;
+        mat.emissiveIntensity = 0.35;
+        mat.envMapIntensity = 2.0;
         obj.material = mat;
       }
     });
@@ -102,7 +102,7 @@ export const LuxuryJewelry = ({ position, onClick }: JewelryProps) => {
       <group ref={innerRef}>
         <primitive object={cloned} scale={80} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#FFD700" intensity={12} distance={2000} decay={2} />
+      <pointLight color="#FFD700" intensity={20} distance={2000} decay={2} />
     </group>
   );
 };
@@ -126,9 +126,9 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
         if (child.material) {
           const mat = (child.material as THREE.MeshStandardMaterial).clone();
           const base = mat.color.clone();
-          mat.emissive = base.clone().lerp(new THREE.Color('#88CCAA'), 0.08);
-          mat.emissiveIntensity = 0.2;
-          mat.envMapIntensity = 1.5;
+          mat.emissive = base.clone().lerp(new THREE.Color('#C4A44A'), 0.12);
+          mat.emissiveIntensity = 0.35;
+          mat.envMapIntensity = 2.0;
           child.material = mat;
         }
       }
@@ -161,7 +161,7 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
       <group ref={spinRef}>
         <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#88CCAA" intensity={12} distance={2000} decay={2} />
+      <pointLight color="#C4A44A" intensity={20} distance={2000} decay={2} />
     </group>
   );
 };

@@ -246,7 +246,7 @@ const Atmosphere = ({ isMobile }: { isMobile: boolean }) => {
   const { scene, gl } = useThree();
 
   useEffect(() => {
-    scene.background = null;
+    scene.background = new THREE.Color('#4A90D0');
     gl.toneMappingExposure = 0.3;
   }, [scene, gl]);
 

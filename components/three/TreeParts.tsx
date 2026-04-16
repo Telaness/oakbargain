@@ -286,9 +286,8 @@ export const TreeTrunk = ({ onClick, onPointerOver, onPointerOut }: TreePartProp
       new THREE.Vector2(1400, 3200),  new THREE.Vector2(1300, 3800), new THREE.Vector2(1160, 4500),
       new THREE.Vector2(1000, 5200),  new THREE.Vector2(860, 6000),  new THREE.Vector2(740, 6800),
       new THREE.Vector2(660, 7500),   new THREE.Vector2(600, 8000),
-      // 頂点を閉じる（断面が見えないように先端を絞る）
-      new THREE.Vector2(400, 8300),   new THREE.Vector2(200, 8500),
-      new THREE.Vector2(60, 8650),    new THREE.Vector2(0.01, 8700),
+      // 頂点を閉じる（枝の付け根で自然に消える）
+      new THREE.Vector2(400, 8100),   new THREE.Vector2(0.01, 8200),
     ];
     return new THREE.LatheGeometry(profile, 96, 0, Math.PI * 2);
   }, []);
