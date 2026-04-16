@@ -402,7 +402,7 @@ const FrameScene = ({ lineId, showDetail, wave, onAllCleared, isMobile }: {
       <FrameImage lineId={lineId} showDetail={showDetail} isMobile={isMobile} />
       <OrnateFrame onTouch={handleTouch} showDetail={showDetail} isMobile={isMobile} />
       <FallenLeaves wave={wave} onAllCleared={onAllCleared} isMobile={isMobile} />
-      <DustBurst key={dustKey} active={dustKey > 0} />
+      {!isMobile && <DustBurst key={dustKey} active={dustKey > 0} />}
     </>
   );
 };
@@ -591,7 +591,7 @@ export const LineModal = ({ lineId, onClose }: LineModalProps) => {
     <>
       {/* ===== 暗闇背景 ===== */}
       <div
-        className="fixed inset-0 z-[55] bg-[#0B1A0E]"
+        className="fixed inset-0 z-[55] bg-black"
         style={{
           opacity: phase === 'closing' ? 0 : 1,
           transition: 'opacity 0.6s ease-out',
