@@ -104,14 +104,11 @@ export const ImmersiveOverlay = ({ scrollProgress }: ImmersiveOverlayProps) => {
       {/* ===== 終端: 真上の黒い天井に OAK BARGAIN ===== */}
       {scrollProgress > 0.85 && (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute inset-x-0 bottom-[35%] flex flex-col items-center"
           style={{
             opacity: Math.min(1, Math.max(0, (scrollProgress - 0.88) / 0.10)),
           }}
         >
-          <p className="text-center text-[10px] tracking-[0.4em] text-[#6B5B45] uppercase mb-4">
-            Vintage Jewelry Brand
-          </p>
           <h2 className="text-center text-3xl md:text-7xl font-serif tracking-[0.35em] text-[#B8964E]">
             OAK BARGAIN
           </h2>
@@ -120,7 +117,7 @@ export const ImmersiveOverlay = ({ scrollProgress }: ImmersiveOverlayProps) => {
             style={{ width: '120px' }}
           />
           <p className="text-center mt-5 text-sm tracking-[0.2em] text-[#8B7355]">
-            時を旅した輝きに、次の物語を
+            VINTAGE JEWELRY BRAND
           </p>
         </div>
       )}

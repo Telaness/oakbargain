@@ -81,6 +81,8 @@ const GrassGround = () => {
       roughness: 0.85,
       metalness: 0,
       envMapIntensity: 0.5,
+      transparent: true,
+      depthWrite: true,
     });
 
     mat.onBeforeCompile = (shader) => {
@@ -109,6 +111,11 @@ const GrassGround = () => {
         ].join('\n'))
         .replace('#include <color_fragment>', [
           'vec2 gp = vGWP.xz;',
+          'float dt = length(gp);',
+          // いびつな円形の境界半径: 細かめで小振幅の波を合成（楕円感・直線感を回避）
+          'float ang = atan(gp.y, gp.x);',
+          'float wobble = sin(ang * 3.3 + 0.4) * 220.0 + sin(ang * 5.1 + 1.7) * 150.0 + sin(ang * 7.9 + 3.1) * 90.0;',
+          'float boundaryR = 7700.0 + wobble;',
           'float gN1=gfbm2(gp*0.04); float gN2=gn2(gp*0.3); float gN3=gn2(gp*1.2);',
           // 草原の緑ベースカラー
           'vec3 gDk=vec3(0.12,0.18,0.06); vec3 gMd=vec3(0.18,0.28,0.08);',
@@ -118,14 +125,23 @@ const GrassGround = () => {
           'float dp=smoothstep(0.48,0.60,gn2(gp*0.06+5.0)); gc=mix(gc,gYl,dp*0.3);',
           'gc+=gN3*0.03;',
           // 木の根元は少し暗い（日陰）
-          'float dt = length(gp);',
           'float canopyShade = smoothstep(4000.0, 1500.0, dt) * 0.2;',
           'gc *= (1.0 - canopyShade);',
           // 根元付近は土っぽく
           'float bareRing = smoothstep(2200.0, 1600.0, dt);',
           'vec3 earthColor = vec3(0.18,0.14,0.08);',
           'gc = mix(gc, earthColor, bareRing * 0.4);',
-          'diffuseColor=vec4(gc,1.0);',
+          // 下から光が差すような暖色グロー（縁の手前で発光）
+          'float glowZone = smoothstep(boundaryR - 2400.0, boundaryR - 200.0, dt);',
+          'vec3 warmGlow = vec3(0.98, 0.80, 0.50);',
+          'gc = mix(gc, warmGlow, glowZone * 0.55);',
+          // さらに最内縁で白く明るく（光の中心）
+          'float coreGlow = smoothstep(boundaryR - 600.0, boundaryR - 50.0, dt);',
+          'vec3 brightCore = vec3(1.0, 0.92, 0.78);',
+          'gc = mix(gc, brightCore, coreGlow * 0.85);',
+          // アルファフェード: 境界を超えた瞬間に滑らかに透明へ（ジャギ回避）
+          'float alphaFade = 1.0 - smoothstep(boundaryR - 60.0, boundaryR + 200.0, dt);',
+          'diffuseColor = vec4(gc, alphaFade);',
         ].join('\n'));
 
       mat.userData.shader = shader;
@@ -273,7 +289,7 @@ const Atmosphere = ({ isMobile }: { isMobile: boolean }) => {
       {/* 空（青）と地面（緑）の反射光 */}
       <hemisphereLight args={['#5090D0', '#3A8030', 0.45]} />
       {/* 遠景の空気遠近感 */}
-      <fog attach="fog" args={['#B8D8F0', 12000, 45000]} />
+      <fog attach="fog" args={['#B8D8F0', 14000, 50000]} />
     </>
   );
 };

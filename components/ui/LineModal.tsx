@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, useTexture, Environment } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import type { LineType } from '@/types/line';
 import { LINE_CONFIGS } from '@/lib/constants';
@@ -111,22 +111,34 @@ const LINE_IMAGE_PATHS: Record<LineType, string> = {
   entry: '/img/line/entry.JPEG',
 };
 
+// ===== ライン背景画像パス =====
+const LINE_BACKGROUND_PATHS: Record<LineType, string> = {
+  luxury: '/img/linebackground/luxury.webp',
+  premium: '/img/linebackground/premium.webp',
+  standard: '/img/linebackground/standard.webp',
+  entry: '/img/linebackground/entry.webp',
+};
+
 // ===== 額縁内の画像 =====
+const IMAGE_ASPECT = 2.0; // 額の内側アスペクトに合わせて 2:1
+
 const FrameImage = ({ lineId, showDetail, isMobile }: { lineId: LineType; showDetail: boolean; isMobile: boolean }) => {
   const texture = useTexture(LINE_IMAGE_PATHS[lineId]);
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // 全ライン正方形表示、画像を中央トリミング
+  // 横長(3:2)に合わせて画像を中央トリミング
   useMemo(() => {
     const img = texture.image as HTMLImageElement | undefined;
     if (!img || !img.width || !img.height) return;
-    const aspect = img.width / img.height;
-    if (aspect > 1) {
-      texture.repeat.set(1 / aspect, 1);
-      texture.offset.set((1 - 1 / aspect) / 2, 0);
+    const imgAspect = img.width / img.height;
+    if (imgAspect > IMAGE_ASPECT) {
+      const repeat = IMAGE_ASPECT / imgAspect;
+      texture.repeat.set(repeat, 1);
+      texture.offset.set((1 - repeat) / 2, 0);
     } else {
-      texture.repeat.set(1, aspect);
-      texture.offset.set(0, (1 - aspect) / 2);
+      const repeat = imgAspect / IMAGE_ASPECT;
+      texture.repeat.set(1, repeat);
+      texture.offset.set(0, (1 - repeat) / 2);
     }
     texture.needsUpdate = true;
   }, [texture]);
@@ -143,21 +155,58 @@ const FrameImage = ({ lineId, showDetail, isMobile }: { lineId: LineType; showDe
     }
   });
 
-  const size = isMobile ? 0.8 : 1.6;
+  const height = isMobile ? 0.65 : 1.3;
+  const width = height * IMAGE_ASPECT;
 
   return (
     <mesh ref={meshRef} position={[0, 0, -0.05]}>
-      <planeGeometry args={[size, size]} />
+      <planeGeometry args={[width, height]} />
       <meshBasicMaterial map={texture} />
     </mesh>
   );
 };
 
 // ===== 額縁3Dモデル =====
+const FRAME_ROTATION: [number, number, number] = [Math.PI, Math.PI, 0];
+
 const OrnateFrame = ({ onTouch, showDetail, isMobile }: { onTouch: () => void; showDetail: boolean; isMobile: boolean }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF('/3d/ornate_frame_3.glb');
-  const cloned = useMemo(() => scene.clone(), [scene]);
+  const { scene } = useGLTF('/3d/main_frame.glb');
+
+  // GLBの原点を bounding box 中央に揃える（モデル原点ずれによる位置オフセット対策）
+  const cloned = useMemo(() => {
+    const c = scene.clone();
+    c.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(c);
+    const center = box.getCenter(new THREE.Vector3());
+    c.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.translate(-center.x, -center.y, -center.z);
+      }
+    });
+    return c;
+  }, [scene]);
+
+  // 自然サイズを正規化するための係数（回転後のXY最大寸法を1にする）
+  const fitScale = useMemo(() => {
+    const temp = new THREE.Group();
+    const c = scene.clone();
+    c.updateMatrixWorld(true);
+    const baseBox = new THREE.Box3().setFromObject(c);
+    const baseCenter = baseBox.getCenter(new THREE.Vector3());
+    c.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.translate(-baseCenter.x, -baseCenter.y, -baseCenter.z);
+      }
+    });
+    temp.add(c);
+    temp.rotation.set(FRAME_ROTATION[0], FRAME_ROTATION[1], FRAME_ROTATION[2]);
+    temp.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(temp);
+    const size = box.getSize(new THREE.Vector3());
+    const maxXY = Math.max(size.x, size.y);
+    return maxXY > 0 ? 1 / maxXY : 1;
+  }, [scene]);
 
   useEffect(() => {
     if (groupRef.current) {
@@ -173,7 +222,7 @@ const OrnateFrame = ({ onTouch, showDetail, isMobile }: { onTouch: () => void; s
     }
   }, [cloned]);
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (!groupRef.current) return;
     if (isMobile) {
       const targetY = showDetail ? 0.8 : 0;
@@ -183,10 +232,13 @@ const OrnateFrame = ({ onTouch, showDetail, isMobile }: { onTouch: () => void; s
       const targetX = showDetail ? -1.5 : 0;
       groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.05);
     }
-    groupRef.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.3) * 0.05;
   });
 
-  const frameScale = isMobile ? 4 : 8;
+  // 画像サイズ（横長の幅）に合わせて、わずかに外側へマージンを取る
+  const imageHeight = isMobile ? 0.65 : 1.3;
+  const imageWidth = imageHeight * IMAGE_ASPECT;
+  const margin = isMobile ? 1.1 : 1.05;
+  const frameScale = fitScale * imageWidth * margin;
 
   return (
     <group
@@ -195,7 +247,7 @@ const OrnateFrame = ({ onTouch, showDetail, isMobile }: { onTouch: () => void; s
       onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { document.body.style.cursor = 'default'; }}
     >
-      <primitive object={cloned} scale={frameScale} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]} />
+      <primitive object={cloned} scale={frameScale} position={[0, 0, 0]} rotation={FRAME_ROTATION} />
     </group>
   );
 };
@@ -398,7 +450,6 @@ const FrameScene = ({ lineId, showDetail, wave, onAllCleared, isMobile }: {
       <ambientLight intensity={0.4} color="#C4956A" />
       <directionalLight intensity={1.5} position={[3, 5, 4]} color="#FFE8C0" />
       <directionalLight intensity={0.3} position={[-2, 3, -1]} color="#8B7355" />
-      <Environment preset="apartment" environmentIntensity={0.3} />
       <FrameImage lineId={lineId} showDetail={showDetail} isMobile={isMobile} />
       <OrnateFrame onTouch={handleTouch} showDetail={showDetail} isMobile={isMobile} />
       <FallenLeaves wave={wave} onAllCleared={onAllCleared} isMobile={isMobile} />
@@ -425,7 +476,7 @@ const LINE_DESCRIPTIONS: Record<LineType, string[]> = {
     'OAK BARGAINの中でも、最も幅広いお客様に支持される中心的なラインであり、日常に寄り添うヴィンテージジュエリーとして提案していきます。',
   ],
   premium: [
-    'Standard Lineよりも、デザイン性・存在感・希少性を高めたラインです。\n日常使いもできる一方で、より強く"特別感"を感じられる商品群として位置づけています。',
+    'デザイン性・存在感・希少性をより高めたラインです。\n日常使いもできる一方で、より強く"特別感"を感じられる商品群として位置づけています。',
     '「少し背伸びをしてでも欲しくなるもの」\n「人と少し違う、ワンランク上のヴィンテージジュエリー」',
     'そうした価値を求める方に向けたラインであり、OAK BARGAINの世界観をより深く感じてもらうための中上位ラインです。',
   ],
@@ -474,6 +525,7 @@ const LineDescription = ({ lineId, visible, isMobile }: { lineId: LineType; visi
           letterSpacing: '0.3em',
           marginBottom: '8px',
           fontFamily: 'var(--font-serif)',
+          textShadow: '0 2px 6px rgba(0,0,0,0.8)',
         }}
       >
         {config.nameSub}
@@ -488,6 +540,7 @@ const LineDescription = ({ lineId, visible, isMobile }: { lineId: LineType; visi
           letterSpacing: '0.15em',
           marginBottom: '24px',
           fontFamily: 'var(--font-serif)',
+          textShadow: '0 2px 8px rgba(0,0,0,0.8)',
         }}
       >
         {config.name}
@@ -502,6 +555,7 @@ const LineDescription = ({ lineId, visible, isMobile }: { lineId: LineType; visi
           marginBottom: '32px',
           fontStyle: 'italic',
           fontFamily: 'var(--font-serif)',
+          textShadow: '0 2px 8px rgba(0,0,0,0.85)',
         }}
       >
         「{config.concept}」
@@ -522,13 +576,14 @@ const LineDescription = ({ lineId, visible, isMobile }: { lineId: LineType; visi
         <p
           key={i}
           style={{
-            color: '#C8C0B4',
+            color: '#E8E2D6',
             fontSize: '1rem',
             lineHeight: 2,
             fontWeight: 300,
             maxWidth: '480px',
             marginBottom: '20px',
             whiteSpace: 'pre-line',
+            textShadow: '0 2px 6px rgba(0,0,0,0.7)',
           }}
         >
           {text}
@@ -589,10 +644,17 @@ export const LineModal = ({ lineId, onClose }: LineModalProps) => {
 
   return (
     <>
-      {/* ===== 暗闇背景 ===== */}
+      {/* ===== 背景画像 ===== */}
       <div
-        className="fixed inset-0 z-[55] bg-black"
+        className="fixed inset-0 z-[55]"
         style={{
+          backgroundImage: lineId
+            ? `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url('${LINE_BACKGROUND_PATHS[lineId]}')`
+            : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#000',
           opacity: phase === 'closing' ? 0 : 1,
           transition: 'opacity 0.6s ease-out',
         }}
@@ -606,8 +668,12 @@ export const LineModal = ({ lineId, onClose }: LineModalProps) => {
       {(phase === 'reveal' || phase === 'detail') && (
         <button
           onClick={handleClose}
-          className="fixed top-6 right-8 z-[62] text-2xl transition-opacity hover:opacity-100"
-          style={{ color: '#8B7355', opacity: 0.5 }}
+          className="fixed top-6 right-8 z-[62] text-3xl transition-opacity hover:opacity-100"
+          style={{
+            color: '#FFFFFF',
+            opacity: 0.85,
+            textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+          }}
         >
           ×
         </button>

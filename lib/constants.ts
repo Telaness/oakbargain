@@ -94,7 +94,7 @@ export const LINE_CONFIGS: Record<LineType, LineConfig> = {
     concept: 'その輝きに、価値がある。',
     description:
       'K18やプラチナなど、素材そのものにも高い価値を持つ最上位ライン。時を経てなお輝き続ける、至高のヴィンテージジュエリーをお届けします。',
-    colors: { bg: '#F8F0E3', text: '#1A1A1A', accent: '#D4AF37' },
+    colors: { bg: '#F8F0E3', text: '#1A1A1A', accent: '#8B5A2B' },
     scrollTarget: 0.73,
     path: '/lines/luxury',
   },
@@ -106,7 +106,7 @@ export const LINE_CONFIGS: Record<LineType, LineConfig> = {
     concept: '特別感を、日常に。',
     description:
       'デザイン性・存在感・希少性を高めた中上位ライン。特別な日にも、日常にも寄り添う、選ばれたヴィンテージジュエリーです。',
-    colors: { bg: '#1A2B1A', text: '#F0EDE6', accent: '#8BA888' },
+    colors: { bg: '#1A2B1A', text: '#F0EDE6', accent: '#4A8B4A' },
     scrollTarget: 0.53,
     path: '/lines/premium',
   },
@@ -118,7 +118,7 @@ export const LINE_CONFIGS: Record<LineType, LineConfig> = {
     concept: '毎日つけたい定番。',
     description:
       '日常使いのしやすさとヴィンテージの存在感のバランスを意識したライン。あなたの毎日に、さりげない特別感を。',
-    colors: { bg: '#2C1A0E', text: '#F0EDE6', accent: '#B8964E' },
+    colors: { bg: '#2C1A0E', text: '#F0EDE6', accent: '#5A8FCC' },
     scrollTarget: 0.33,
     path: '/lines/standard',
   },
@@ -130,7 +130,7 @@ export const LINE_CONFIGS: Record<LineType, LineConfig> = {
     concept: 'はじめての1つ、ここから。',
     description:
       'ヴィンテージジュエリーを初めて手に取る方にも親しみやすい入門ライン。あなたの物語の始まりに。',
-    colors: { bg: '#3D2B1F', text: '#F0EDE6', accent: '#C4956A' },
+    colors: { bg: '#3D2B1F', text: '#F0EDE6', accent: '#E25A50' },
     scrollTarget: 0.13,
     path: '/lines/entry',
   },

@@ -75,7 +75,7 @@ interface LogoMeshProps {
 
 export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF('/3d/logo/oak_bargain_gold.glb');
+  const { scene } = useGLTF('/3d/logo/oak_bargain_gold_only.glb');
   const { camera } = useThree();
 
   const cloned = useMemo(() => {
@@ -132,7 +132,7 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     const endBlendForPos = THREE.MathUtils.smoothstep(scrollProgress, 0.85, 0.95);
     const baseUp = THREE.MathUtils.lerp(10, -20, THREE.MathUtils.smoothstep(scrollProgress, 0, 0.1));
     const normalUp = THREE.MathUtils.lerp(baseUp, -50, focusBlend);
-    const upOffset = THREE.MathUtils.lerp(normalUp, 5, endBlendForPos);
+    const upOffset = THREE.MathUtils.lerp(normalUp, 15, endBlendForPos);
     const rightOffset = THREE.MathUtils.lerp(0, 60 * direction, focusBlend);
     const scaleTarget = THREE.MathUtils.lerp(1, 0.6, focusBlend);
 
@@ -188,4 +188,4 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
   );
 };
 
-useGLTF.preload('/3d/logo/oak_bargain_gold.glb');
+useGLTF.preload('/3d/logo/oak_bargain_gold_only.glb');
