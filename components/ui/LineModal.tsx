@@ -126,22 +126,28 @@ const FrameImage = ({ lineId, showDetail, isMobile }: { lineId: LineType; showDe
   const texture = useTexture(LINE_IMAGE_PATHS[lineId]);
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // 横長(3:2)に合わせて画像を中央トリミング
+  const height = isMobile ? 0.65 : 1.3;
+  // モバイル時は額の左右の余白を埋めるため画像幅を広げる（高さは維持）
+  const widthBoost = isMobile ? 1.06 : 1.0;
+  const width = height * IMAGE_ASPECT * widthBoost;
+  const planeAspect = width / height;
+
+  // 画像 plane のアスペクトに合わせて中央トリミング
   useMemo(() => {
     const img = texture.image as HTMLImageElement | undefined;
     if (!img || !img.width || !img.height) return;
     const imgAspect = img.width / img.height;
-    if (imgAspect > IMAGE_ASPECT) {
-      const repeat = IMAGE_ASPECT / imgAspect;
+    if (imgAspect > planeAspect) {
+      const repeat = planeAspect / imgAspect;
       texture.repeat.set(repeat, 1);
       texture.offset.set((1 - repeat) / 2, 0);
     } else {
-      const repeat = imgAspect / IMAGE_ASPECT;
+      const repeat = imgAspect / planeAspect;
       texture.repeat.set(1, repeat);
       texture.offset.set(0, (1 - repeat) / 2);
     }
     texture.needsUpdate = true;
-  }, [texture]);
+  }, [texture, planeAspect]);
 
   useFrame(() => {
     if (!meshRef.current) return;
@@ -154,9 +160,6 @@ const FrameImage = ({ lineId, showDetail, isMobile }: { lineId: LineType; showDe
       meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, targetX, 0.05);
     }
   });
-
-  const height = isMobile ? 0.65 : 1.3;
-  const width = height * IMAGE_ASPECT;
 
   return (
     <mesh ref={meshRef} position={[0, 0, -0.05]}>

@@ -5,6 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { getTrunkRadius, BRANCH_DEFS, buildBranchCurve } from './TreeParts';
+import { useResponsive } from '@/hooks/useResponsive';
 
 // ジュエリーフォーカス区間（CameraRigと同じ値）
 const FOCUS_CENTERS = [0.13, 0.33, 0.53, 0.73];
@@ -77,6 +78,7 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/3d/logo/oak_bargain_gold_only.glb');
   const { camera } = useThree();
+  const { isMobile } = useResponsive();
 
   const cloned = useMemo(() => {
     const c = scene.clone();
@@ -132,7 +134,9 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     const endBlendForPos = THREE.MathUtils.smoothstep(scrollProgress, 0.85, 0.95);
     const baseUp = THREE.MathUtils.lerp(10, -20, THREE.MathUtils.smoothstep(scrollProgress, 0, 0.1));
     const normalUp = THREE.MathUtils.lerp(baseUp, -50, focusBlend);
-    const upOffset = THREE.MathUtils.lerp(normalUp, 15, endBlendForPos);
+    // 終端でのロゴの高さ: スマホは文字との重なりを避けるため大きく上にずらす
+    const endUp = isMobile ? 30 : 15;
+    const upOffset = THREE.MathUtils.lerp(normalUp, endUp, endBlendForPos);
     const rightOffset = THREE.MathUtils.lerp(0, 60 * direction, focusBlend);
     const scaleTarget = THREE.MathUtils.lerp(1, 0.6, focusBlend);
 

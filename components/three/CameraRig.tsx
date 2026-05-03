@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { BRANCH_DEFS, buildBranchCurve, getTrunkRadius } from './TreeParts';
+import { useResponsive } from '@/hooks/useResponsive';
 
 // ===== 枝衝突回避用 =====
 interface BranchSample { pos: THREE.Vector3; radius: number; }
@@ -191,7 +192,7 @@ const _spiralPos = new THREE.Vector3();
 const _targetPos = new THREE.Vector3();
 const _targetLook = new THREE.Vector3();
 
-const computeCamera = (scroll: number): { pos: THREE.Vector3; lookAt: THREE.Vector3 } => {
+const computeCamera = (scroll: number, surfaceMargin: number): { pos: THREE.Vector3; lookAt: THREE.Vector3 } => {
   // 終端区間: Luxuryの位置から真上を見上げて黒い天井へ
   if (scroll > SPIRAL_END_SCROLL) {
     const pullT = (scroll - SPIRAL_END_SCROLL) / (1.0 - SPIRAL_END_SCROLL);
@@ -210,7 +211,7 @@ const computeCamera = (scroll: number): { pos: THREE.Vector3; lookAt: THREE.Vect
   const angle = getSpiralAngle(scroll);
   const y = getY(scroll);
   const trunkR = getTrunkRadius(y);
-  const orbitR = trunkR + SURFACE_MARGIN;
+  const orbitR = trunkR + surfaceMargin;
 
   _spiralPos.set(Math.cos(angle) * orbitR, y, Math.sin(angle) * orbitR);
 
@@ -241,6 +242,10 @@ export const getActiveLineName = (scroll: number): string | null => {
 interface CameraRigProps { scrollProgress: number; mouseNX: number; mouseNY: number; }
 
 export const CameraRig = ({ scrollProgress, mouseNX, mouseNY }: CameraRigProps) => {
+  const { isMobile } = useResponsive();
+  // スマホでは少し引いて自然の広がりを出す
+  const surfaceMargin = isMobile ? 400 : SURFACE_MARGIN;
+
   const smoothPos = useRef(new THREE.Vector3(
     Math.cos(getSpiralAngle(0)) * (getTrunkRadius(START_Y) + SURFACE_MARGIN),
     START_Y,
@@ -250,7 +255,7 @@ export const CameraRig = ({ scrollProgress, mouseNX, mouseNY }: CameraRigProps) 
 
   useFrame(({ camera }) => {
     const scroll = THREE.MathUtils.clamp(scrollProgress, 0, 0.999);
-    const { pos, lookAt: look } = computeCamera(scroll);
+    const { pos, lookAt: look } = computeCamera(scroll, surfaceMargin);
 
     // マウス微調整
     pos.x += mouseNX * 5.0;
