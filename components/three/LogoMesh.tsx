@@ -135,7 +135,7 @@ export const LogoMesh = ({ scrollProgress }: LogoMeshProps) => {
     const baseUp = THREE.MathUtils.lerp(10, -20, THREE.MathUtils.smoothstep(scrollProgress, 0, 0.1));
     const normalUp = THREE.MathUtils.lerp(baseUp, -50, focusBlend);
     // 終端でのロゴの高さ: スマホは文字との重なりを避けるため大きく上にずらす
-    const endUp = isMobile ? 30 : 15;
+    const endUp = isMobile ? 30 : 28;
     const upOffset = THREE.MathUtils.lerp(normalUp, endUp, endBlendForPos);
     const rightOffset = THREE.MathUtils.lerp(0, 60 * direction, focusBlend);
     const scaleTarget = THREE.MathUtils.lerp(1, 0.6, focusBlend);
