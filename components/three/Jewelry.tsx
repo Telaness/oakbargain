@@ -125,10 +125,13 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
         child.geometry.translate(-center.x, -center.y, -center.z);
         if (child.material) {
           const mat = (child.material as THREE.MeshStandardMaterial).clone();
-          const base = mat.color.clone();
-          mat.emissive = base.clone().lerp(new THREE.Color('#C4A44A'), 0.12);
-          mat.emissiveIntensity = 0.35;
-          mat.envMapIntensity = 2.0;
+          // 黄色寄りのゴールド（オレンジ感を抑えつつ金感はキープ）
+          mat.color = new THREE.Color('#C0AA68');
+          mat.metalness = 0.85;
+          mat.roughness = 0.24;
+          mat.emissive = new THREE.Color('#9E8E4E');
+          mat.emissiveIntensity = 0.42;
+          mat.envMapIntensity = 2.1;
           child.material = mat;
         }
       }
@@ -161,7 +164,7 @@ export const PremiumJewelry = ({ position, onClick }: JewelryProps) => {
       <group ref={spinRef}>
         <primitive object={cloned} scale={8} rotation={[Math.PI / 2, 0, 0]} />
       </group>
-      <pointLight color="#C4A44A" intensity={20} distance={2000} decay={2} />
+      <pointLight color="#E8DA8A" intensity={20} distance={2100} decay={2} />
     </group>
   );
 };
