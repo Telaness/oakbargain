@@ -4,13 +4,14 @@ import { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { computeFoliageTips } from './TreeParts';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface FoliageProps {
   leafCount: number;
 }
 
 // ===== 巨大な大樹の密な樹冠: 枝先端を中心に大量のクラスターで覆い尽くす =====
-const computeClusters = () => {
+const computeClusters = (isMobile: boolean) => {
   const tips = computeFoliageTips();
   const clusters: { x: number; y: number; z: number; r: number }[] = [];
 
@@ -41,13 +42,29 @@ const computeClusters = () => {
     }
   });
 
+  // スマホ時: 葉数が少ないため幹のてっぺんが透けて見える → 頂点を完全に覆う追加クラスターを足す
+  if (isMobile) {
+    const crownY = 8400;
+    for (let i = 0; i < 36; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * 380;
+      clusters.push({
+        x: Math.cos(a) * r,
+        y: crownY + (Math.random() - 0.5) * 600,
+        z: Math.sin(a) * r,
+        r: 320,
+      });
+    }
+  }
+
   return clusters;
 };
 
 export const Foliage = ({ leafCount }: FoliageProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
-  const clusters = useMemo(computeClusters, []);
+  const { isMobile } = useResponsive();
+  const clusters = useMemo(() => computeClusters(isMobile), [isMobile]);
 
   const { matrices, randoms, totalCount } = useMemo(() => {
     const dummy = new THREE.Object3D();
