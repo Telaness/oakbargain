@@ -249,9 +249,9 @@ const GrassBlades = ({ count }: { count: number }) => {
 const SkyDome = () => (
   <Sky
     distance={450000}
-    sunPosition={[10000, 500, 5000]}
-    turbidity={10}
-    rayleigh={0.3}
+    sunPosition={[10000, 3500, 5000]}
+    turbidity={5}
+    rayleigh={1.0}
     mieCoefficient={0.0005}
     mieDirectionalG={0.4}
   />
@@ -262,8 +262,8 @@ const Atmosphere = ({ isMobile }: { isMobile: boolean }) => {
   const { scene, gl } = useThree();
 
   useEffect(() => {
-    scene.background = new THREE.Color('#4A90D0');
-    gl.toneMappingExposure = 0.3;
+    scene.background = new THREE.Color('#7BB6E5');
+    gl.toneMappingExposure = 0.42;
   }, [scene, gl]);
 
   return (
