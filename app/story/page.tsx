@@ -2,10 +2,25 @@ import type { Metadata } from 'next';
 import { Navigation } from '@/components/ui/Navigation';
 import { TransitionLink } from '@/components/ui/TransitionLink';
 
+const STORY_DESCRIPTION =
+  'OAK BARGAINのブランドコンセプトと世界観をご紹介。時を経てきたヴィンテージジュエリーが持つ記憶と存在感を、現代の感性であらためて届けるブランドの物語。';
+
 export const metadata: Metadata = {
-  title: 'ブランドストーリー | OAK BARGAIN',
-  description:
-    'OAK BARGAINのブランドコンセプトと世界観をご紹介。時を旅した輝きに、次の物語を。',
+  title: 'ブランドストーリー',
+  description: STORY_DESCRIPTION,
+  alternates: { canonical: '/story' },
+  openGraph: {
+    title: 'ブランドストーリー | OAK BARGAIN',
+    description: STORY_DESCRIPTION,
+    url: '/story',
+    type: 'article',
+    images: ['/img/story/story.JPG'],
+  },
+  twitter: {
+    title: 'ブランドストーリー | OAK BARGAIN',
+    description: STORY_DESCRIPTION,
+    images: ['/img/story/story.JPG'],
+  },
 };
 
 export default function StoryPage() {
