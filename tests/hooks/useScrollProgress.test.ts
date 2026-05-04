@@ -7,14 +7,6 @@ interface FrameState {
   now: number;
 }
 
-const setScrollY = (value: number): void => {
-  Object.defineProperty(window, 'scrollY', {
-    value,
-    writable: true,
-    configurable: true,
-  });
-};
-
 describe('useScrollProgress', () => {
   const state: FrameState = { callbacks: [], now: 0 };
 
@@ -28,19 +20,6 @@ describe('useScrollProgress', () => {
     });
     vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
     vi.spyOn(performance, 'now').mockImplementation(() => state.now);
-
-    Object.defineProperty(document.documentElement, 'scrollHeight', {
-      value: 2000,
-      configurable: true,
-    });
-    Object.defineProperty(window, 'innerHeight', {
-      value: 800,
-      configurable: true,
-    });
-    setScrollY(0);
-
-    // jsdom は scrollTo 未実装なのでデフォルトでモック化
-    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   });
 
   afterEach(() => {
@@ -56,135 +35,137 @@ describe('useScrollProgress', () => {
     });
   };
 
+  const dispatchWheel = (deltaY: number): void => {
+    const ev = new WheelEvent('wheel', { deltaY, cancelable: true });
+    window.dispatchEvent(ev);
+  };
+
   it('初期値は0', () => {
     const { result } = renderHook(() => useScrollProgress());
     expect(result.current).toBe(0);
   });
 
-  it('スクロール時に滑らかにprogressが目標値へ収束する', () => {
-    setScrollY(600);
+  it('1回ホイールスクロールするとEntryステップ(0.13)へ移動する', () => {
     const { result } = renderHook(() => useScrollProgress());
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
-      flushFrames(120);
+      dispatchWheel(100);
+      flushFrames(150);
     });
 
-    // 600 / (2000 - 800) = 0.5
-    expect(result.current).toBeCloseTo(0.5, 2);
+    expect(result.current).toBeCloseTo(0.13, 2);
   });
 
-  it('progressは0〜1の範囲に収まる', () => {
-    setScrollY(5000);
+  it('連続して強くスクロールしてもクールダウン中は次へ進まない', () => {
     const { result } = renderHook(() => useScrollProgress());
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
+      dispatchWheel(500); // ステップ1へ
+      flushFrames(5);
+      // クールダウン中(800ms未経過)はいくらホイールしても無視される
+      dispatchWheel(500);
+      dispatchWheel(500);
+      dispatchWheel(500);
       flushFrames(120);
     });
 
-    expect(result.current).toBeLessThanOrEqual(1);
-    expect(result.current).toBeGreaterThanOrEqual(0);
+    // Entry(0.13)で確実に止まり、Standard(0.33)へは進んでいない
+    expect(result.current).toBeCloseTo(0.13, 2);
   });
 
-  it('フォーカス点近傍で停止すると最寄りのフォーカス点へスナップする', () => {
-    // entry = 0.13 / scrollHeight = 1200 / 0.15 * 1200 = 180px
-    setScrollY(180);
-
-    const scrollToSpy = vi.fn((_x: number, y: number) => {
-      setScrollY(y);
-    });
-    window.scrollTo = scrollToSpy as unknown as typeof window.scrollTo;
-
-    renderHook(() => useScrollProgress());
+  it('クールダウン経過後は次のステップへ進める', () => {
+    const { result } = renderHook(() => useScrollProgress());
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
-      flushFrames(3);
+      dispatchWheel(100);
+      flushFrames(60); // 16ms * 60 = 960ms（クールダウン超過）
+      dispatchWheel(100);
+      flushFrames(150);
     });
 
-    // SNAP_IDLE_MS(220ms)未経過なのでまだスナップ未開始
-    expect(scrollToSpy).not.toHaveBeenCalled();
-
-    // 十分時間が経過したらスナップ完了
-    act(() => {
-      flushFrames(60, 16);
-    });
-
-    expect(scrollToSpy).toHaveBeenCalled();
-    const lastCall = scrollToSpy.mock.calls[scrollToSpy.mock.calls.length - 1];
-    // entry(0.13) * 1200 = 156px へ収束
-    expect(lastCall[1]).toBeCloseTo(156, 0);
+    expect(result.current).toBeCloseTo(0.33, 2);
   });
 
-  it('フォーカスから離れた位置ではスナップしない', () => {
-    // raw = 0.5（どのフォーカスにも近くない位置に停止）
-    // 0.5 - premium(0.53) = 0.03 はSNAP_RANGE(0.05)内なので、
-    // SNAP_RANGE外の例として 0.20 を使う（entry/standardから0.07以上離れる）
-    setScrollY(240); // 240 / 1200 = 0.20
-
-    const scrollToSpy = vi.fn();
-    window.scrollTo = scrollToSpy as unknown as typeof window.scrollTo;
-
-    renderHook(() => useScrollProgress());
+  it('上方向にスクロールすると前のステップへ戻る', () => {
+    const { result } = renderHook(() => useScrollProgress());
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
+      dispatchWheel(100);
+      flushFrames(60);
+      dispatchWheel(100);
+      flushFrames(60);
+      dispatchWheel(-100);
+      flushFrames(150);
+    });
+
+    expect(result.current).toBeCloseTo(0.13, 2);
+  });
+
+  it('最上端より上、最下端より下にはステップしない', () => {
+    const { result } = renderHook(() => useScrollProgress());
+
+    act(() => {
+      // 最初は0、上方向スクロールしても0のまま
+      dispatchWheel(-100);
       flushFrames(60);
     });
 
-    expect(scrollToSpy).not.toHaveBeenCalled();
+    expect(result.current).toBe(0);
   });
 
-  it('ユーザーがホイール操作するとスナップが解除される', () => {
-    setScrollY(180);
-
-    const scrollToSpy = vi.fn((_x: number, y: number) => {
-      setScrollY(y);
-    });
-    window.scrollTo = scrollToSpy as unknown as typeof window.scrollTo;
-
-    renderHook(() => useScrollProgress());
+  it('Endキーで最終ステップへ、Homeキーで最上ステップへジャンプする', () => {
+    const { result } = renderHook(() => useScrollProgress());
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
-      flushFrames(20);
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
+      flushFrames(200);
     });
 
-    expect(scrollToSpy).toHaveBeenCalled();
-    const callsBefore = scrollToSpy.mock.calls.length;
+    expect(result.current).toBeCloseTo(1.0, 1);
 
     act(() => {
-      window.dispatchEvent(new WheelEvent('wheel'));
-      flushFrames(10);
+      // クールダウン解除のため十分時間経過
+      state.now += 1000;
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
+      flushFrames(200);
     });
 
-    // ホイール後はスナップが止まり、scrollTo回数が増えない
-    expect(scrollToSpy.mock.calls.length).toBe(callsBefore);
+    expect(result.current).toBeCloseTo(0, 1);
   });
 
-  it('ユーザーがタッチ操作するとスナップが解除される', () => {
-    setScrollY(180);
-
-    const scrollToSpy = vi.fn((_x: number, y: number) => {
-      setScrollY(y);
-    });
-    window.scrollTo = scrollToSpy as unknown as typeof window.scrollTo;
-
-    renderHook(() => useScrollProgress());
+  it('enabled=falseのときはスクロールを受け付けない', () => {
+    const { result } = renderHook(
+      ({ enabled }) => useScrollProgress({ enabled }),
+      { initialProps: { enabled: false } },
+    );
 
     act(() => {
-      window.dispatchEvent(new Event('scroll'));
-      flushFrames(20);
+      dispatchWheel(500);
+      flushFrames(60);
     });
 
-    const callsBefore = scrollToSpy.mock.calls.length;
+    expect(result.current).toBe(0);
+  });
+
+  it('enabledがfalse→trueに切り替わるとスクロールを再開できる', () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useScrollProgress({ enabled }),
+      { initialProps: { enabled: false } },
+    );
 
     act(() => {
-      window.dispatchEvent(new TouchEvent('touchstart'));
-      flushFrames(10);
+      dispatchWheel(500);
+      flushFrames(30);
+    });
+    expect(result.current).toBe(0);
+
+    rerender({ enabled: true });
+
+    act(() => {
+      dispatchWheel(100);
+      flushFrames(150);
     });
 
-    expect(scrollToSpy.mock.calls.length).toBe(callsBefore);
+    expect(result.current).toBeCloseTo(0.13, 2);
   });
 });

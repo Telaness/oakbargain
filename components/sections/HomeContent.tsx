@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useWebGLSupport } from '@/hooks/useWebGLSupport';
 import { useScrollProgress } from '@/hooks/useScrollProgress';
@@ -21,8 +21,17 @@ const TreeScene = dynamic(
 
 export const HomeContent = () => {
   const isWebGLSupported = useWebGLSupport();
-  const scrollProgress = useScrollProgress();
   const [modalLine, setModalLine] = useState<LineType | null>(null);
+  const scrollProgress = useScrollProgress({ enabled: modalLine === null });
+
+  // ホーム画面ではネイティブスクロールを止め、Lineステップ移動だけ受け付ける
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   // パスからLineTypeを抽出してモーダルを開く
   const handleNavigate = useCallback((path: string) => {
@@ -41,13 +50,11 @@ export const HomeContent = () => {
   }
 
   return (
-    <main className="relative">
+    <main className="relative h-screen overflow-hidden">
       <Navigation />
 
       {/* 3Dシーン（固定背景） */}
       <TreeScene onNavigate={handleNavigate} paused={modalLine !== null} />
-
-      {/* ほこりオーバーレイ（パフォーマンス対策で無効化） */}
 
       {/* 没入型UIオーバーレイ */}
       <ImmersiveOverlay
@@ -57,13 +64,6 @@ export const HomeContent = () => {
 
       {/* Line詳細モーダル */}
       <LineModal key={modalLine ?? 'none'} lineId={modalLine} onClose={handleCloseModal} />
-
-      {/* スクロール用スペーサー（木を旅する長さ） */}
-      <div
-        className="relative z-0 pointer-events-none"
-        style={{ height: '800vh' }}
-      />
-
     </main>
   );
 };

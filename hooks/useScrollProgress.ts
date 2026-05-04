@@ -2,127 +2,150 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-// ジュエリーフォーカス位置（CameraRigのFOCUS_CENTERSと一致）
-const FOCUS_CENTERS = [0.13, 0.33, 0.53, 0.73] as const;
+// ステップ位置（Top → Entry → Standard → Premium → Luxury → End）
+// Entry以降の値はCameraRigのFOCUS_CENTERSと一致させる
+const STEPS = [0, 0.13, 0.33, 0.53, 0.73, 1.0] as const;
+const LAST_INDEX = STEPS.length - 1;
 
-// 表示値の慣性補間
-const BASE_LERP = 0.12;
-const STICKY_RANGE = 0.10;
-const STICKY_STRENGTH = 0.05;
+const STEP_LERP = 0.07; // 1フレームの補間係数（小さいほどゆっくり）
+const COOLDOWN_MS = 800; // ステップ移動間のロック時間
+const WHEEL_THRESHOLD = 30; // wheel deltaY 累積がこの値を超えたら1ステップ移動
+const TOUCH_THRESHOLD = 60; // タッチスワイプがこの距離(px)で1ステップ移動
 
-// スナップ挙動
-const SNAP_RANGE = 0.05;
-const SNAP_IDLE_MS = 220;
-const SNAP_LERP = 0.14;
-const SNAP_FINISH_PX = 0.6;
-const PROGRAMMATIC_GUARD_MS = 80;
+interface UseScrollProgressOptions {
+  enabled?: boolean;
+}
 
-const computeStickyLerp = (effective: number): number =>
-  FOCUS_CENTERS.reduce<number>((minLerp, center) => {
-    const dist = Math.abs(effective - center);
-    if (dist >= STICKY_RANGE) return minLerp;
-    const proximity = 1.0 - dist / STICKY_RANGE;
-    const sl =
-      STICKY_STRENGTH +
-      (BASE_LERP - STICKY_STRENGTH) * (1.0 - proximity * proximity);
-    return Math.min(minLerp, sl);
-  }, BASE_LERP);
+const isInputElement = (target: EventTarget | null): boolean =>
+  target instanceof HTMLInputElement ||
+  target instanceof HTMLTextAreaElement ||
+  (target instanceof HTMLElement && target.isContentEditable);
 
-export const useScrollProgress = (): number => {
+export const useScrollProgress = (
+  options: UseScrollProgressOptions = {},
+): number => {
+  const enabled = options.enabled ?? true;
+
   const [progress, setProgress] = useState(0);
-  const effectiveRef = useRef(0);
+  const targetIdxRef = useRef(0);
+  const animatedRef = useRef(0);
+  const wheelAccumRef = useRef(0);
+  // 初回操作はクールダウン無視で受け付けたいので、過去側に十分振っておく
+  const lastStepTimeRef = useRef(-COOLDOWN_MS);
+  const touchStartYRef = useRef<number | null>(null);
   const rafRef = useRef<number>(0);
-  const rawRef = useRef(0);
-  const lastUserActivityRef = useRef(0);
-  const snapTargetYRef = useRef<number | null>(null);
-  const programmaticUntilRef = useRef(0);
 
-  const computeRaw = useCallback((): number => {
-    const scrollHeight =
-      document.documentElement.scrollHeight - window.innerHeight;
-    if (scrollHeight <= 0) return 0;
-    return Math.min(Math.max(window.scrollY / scrollHeight, 0), 1);
-  }, []);
-
-  const handleScroll = useCallback(() => {
-    rawRef.current = computeRaw();
+  const tryStep = useCallback((direction: 1 | -1): boolean => {
     const now = performance.now();
-    if (now > programmaticUntilRef.current) {
-      lastUserActivityRef.current = now;
-      snapTargetYRef.current = null;
-    }
-  }, [computeRaw]);
-
-  const handleUserInput = useCallback(() => {
-    lastUserActivityRef.current = performance.now();
-    snapTargetYRef.current = null;
+    if (now - lastStepTimeRef.current < COOLDOWN_MS) return false;
+    const next = Math.max(0, Math.min(LAST_INDEX, targetIdxRef.current + direction));
+    if (next === targetIdxRef.current) return false;
+    targetIdxRef.current = next;
+    lastStepTimeRef.current = now;
+    wheelAccumRef.current = 0;
+    return true;
   }, []);
+
+  const handleWheel = useCallback(
+    (e: WheelEvent): void => {
+      e.preventDefault();
+      const now = performance.now();
+      if (now - lastStepTimeRef.current < COOLDOWN_MS) {
+        // クールダウン中は累積をリセットして「貯め」を防ぐ
+        wheelAccumRef.current = 0;
+        return;
+      }
+      wheelAccumRef.current += e.deltaY;
+      if (Math.abs(wheelAccumRef.current) >= WHEEL_THRESHOLD) {
+        tryStep(wheelAccumRef.current > 0 ? 1 : -1);
+      }
+    },
+    [tryStep],
+  );
+
+  const handleTouchStart = useCallback((e: TouchEvent): void => {
+    const t = e.touches[0];
+    touchStartYRef.current = t ? t.clientY : null;
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent): void => {
+      const startY = touchStartYRef.current;
+      if (startY === null) return;
+      const t = e.touches[0];
+      if (!t) return;
+      e.preventDefault();
+      const delta = startY - t.clientY;
+      if (Math.abs(delta) >= TOUCH_THRESHOLD) {
+        if (tryStep(delta > 0 ? 1 : -1)) {
+          touchStartYRef.current = t.clientY;
+        }
+      }
+    },
+    [tryStep],
+  );
+
+  const handleTouchEnd = useCallback((): void => {
+    touchStartYRef.current = null;
+  }, []);
+
+  const handleKey = useCallback(
+    (e: KeyboardEvent): void => {
+      if (isInputElement(e.target)) return;
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        tryStep(1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        tryStep(-1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        targetIdxRef.current = 0;
+        lastStepTimeRef.current = performance.now();
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        targetIdxRef.current = LAST_INDEX;
+        lastStepTimeRef.current = performance.now();
+      }
+    },
+    [tryStep],
+  );
 
   useEffect(() => {
-    lastUserActivityRef.current = performance.now();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('wheel', handleUserInput, { passive: true });
-    window.addEventListener('touchstart', handleUserInput, { passive: true });
-    window.addEventListener('touchmove', handleUserInput, { passive: true });
-    window.addEventListener('keydown', handleUserInput);
-    handleScroll();
+    if (!enabled) return;
 
-    const tick = () => {
-      const now = performance.now();
-      const eff = effectiveRef.current;
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('keydown', handleKey);
 
-      // フォーカス近傍で停止していたら、スナップ目標を設定
-      if (
-        snapTargetYRef.current === null &&
-        now - lastUserActivityRef.current > SNAP_IDLE_MS
-      ) {
-        const raw = rawRef.current;
-        const candidate = FOCUS_CENTERS.find(
-          (c) => Math.abs(raw - c) < SNAP_RANGE,
-        );
-        if (candidate !== undefined && Math.abs(raw - candidate) > 0.0005) {
-          const scrollHeight =
-            document.documentElement.scrollHeight - window.innerHeight;
-          if (scrollHeight > 0) {
-            snapTargetYRef.current = candidate * scrollHeight;
-          }
-        }
-      }
-
-      // スナップ実行（プログラム発火のscrollイベントは guard で無視）
-      const snapTargetY = snapTargetYRef.current;
-      if (snapTargetY !== null) {
-        const currentY = window.scrollY;
-        const remaining = snapTargetY - currentY;
-        programmaticUntilRef.current = now + PROGRAMMATIC_GUARD_MS;
-        if (Math.abs(remaining) <= SNAP_FINISH_PX) {
-          window.scrollTo(0, snapTargetY);
-          snapTargetYRef.current = null;
-        } else {
-          window.scrollTo(0, currentY + remaining * SNAP_LERP);
-        }
-        rawRef.current = computeRaw();
-      }
-
-      // 表示値（フォーカス付近で減速）
-      const lerpFactor = computeStickyLerp(eff);
-      effectiveRef.current = eff + (rawRef.current - eff) * lerpFactor;
-      setProgress(effectiveRef.current);
-
+    const tick = (): void => {
+      const target = STEPS[targetIdxRef.current];
+      const next = animatedRef.current + (target - animatedRef.current) * STEP_LERP;
+      animatedRef.current = next;
+      setProgress(next);
       rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('wheel', handleUserInput);
-      window.removeEventListener('touchstart', handleUserInput);
-      window.removeEventListener('touchmove', handleUserInput);
-      window.removeEventListener('keydown', handleUserInput);
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('keydown', handleKey);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [handleScroll, handleUserInput, computeRaw]);
+  }, [
+    enabled,
+    handleWheel,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleKey,
+  ]);
 
   return progress;
 };
