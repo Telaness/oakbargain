@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0A0604]">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B1A0E]">
       <h1 className="text-6xl font-serif tracking-wider text-[#B8964E]">404</h1>
       <p className="mt-4 text-sm tracking-[0.2em] text-[#8B7355]">
         ページが見つかりませんでした
