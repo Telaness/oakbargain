@@ -1,69 +1,16 @@
 import type { Metadata } from 'next';
 import { Navigation } from '@/components/ui/Navigation';
 import { TransitionLink } from '@/components/ui/TransitionLink';
-import { SITE_CONFIG, absoluteUrl } from '@/lib/seo';
-
-const ACCESS_DESCRIPTION =
-  'OAK BARGAIN取扱店舗のアクセス・営業時間・地図情報。古来堂 柏旭町店（千葉県柏市旭町）にて、ヴィンテージジュエリーとの特別な出会いをお届けします。';
 
 export const metadata: Metadata = {
-  title: 'アクセス・店舗情報',
-  description: ACCESS_DESCRIPTION,
-  alternates: { canonical: '/access' },
-  openGraph: {
-    title: 'アクセス・店舗情報 | OAK BARGAIN',
-    description: ACCESS_DESCRIPTION,
-    url: '/access',
-    type: 'website',
-  },
-  twitter: {
-    title: 'アクセス・店舗情報 | OAK BARGAIN',
-    description: ACCESS_DESCRIPTION,
-  },
-};
-
-const localBusinessJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'JewelryStore',
-  '@id': absoluteUrl('/access#localbusiness'),
-  name: `${SITE_CONFIG.organization.branchOf}（${SITE_CONFIG.name} 取扱店）`,
-  url: absoluteUrl('/access'),
-  image: absoluteUrl(SITE_CONFIG.ogImage.url),
-  telephone: SITE_CONFIG.organization.telephone,
-  email: SITE_CONFIG.organization.email,
-  address: {
-    '@type': 'PostalAddress',
-    ...SITE_CONFIG.organization.address,
-  },
-  geo: {
-    '@type': 'GeoCoordinates',
-    latitude: SITE_CONFIG.organization.geo.latitude,
-    longitude: SITE_CONFIG.organization.geo.longitude,
-  },
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: [
-        'Monday',
-        'Tuesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-      ],
-      opens: '10:00',
-      closes: '18:00',
-    },
-  ],
+  title: 'アクセス・店舗情報 | OAK BARGAIN',
+  description:
+    'OAK BARGAINの実店舗・ポップアップイベント情報。ヴィンテージジュエリーとの特別な出会いをお届けします。',
 };
 
 export default function AccessPage() {
   return (
     <div className="min-h-screen bg-[#0B1A0E]">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
-      />
       <Navigation />
 
       <header className="flex flex-col items-center justify-center px-6 pt-32 pb-16">
